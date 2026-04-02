@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TableFlow — Turn Every Table Into a Profit Centre</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0d0d0d;
+  --paper: #f5f2ec;
+  --cream: #faf8f4;
+  --rust: #c94a1f;
+  --rust-light: #e8572a;
+  --gold: #c8922a;
+  --gold-light: #f5c842;
+  --sage: #3d6b4f;
+  --muted: #7a7570;
+  --border: #ddd9d0;
+  --white: #ffffff;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+/* ── TYPOGRAPHY ── */
+.display {
+  font-family: 'Playfair Display', serif;
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+}
+.display-italic {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 700;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 48px;
+  background: rgba(13,13,13,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.nav-logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 24px; font-weight: 900;
+  color: var(--paper);
+  letter-spacing: -0.5px;
+}
+.nav-logo span { color: var(--rust-light); }
+.nav-links { display: flex; gap: 32px; align-items: center; }
+.nav-links a {
+  color: rgba(245,242,236,0.65); font-size: 14px; font-weight: 500;
+  text-decoration: none; transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--paper); }
+.nav-cta {
+  background: var(--rust); color: var(--white);
+  padding: 10px 22px; border-radius: 6px;
+  font-size: 14px; font-weight: 600;
+  text-decoration: none; transition: all 0.2s;
+  border: none; cursor: pointer; font-family: 'Outfit', sans-serif;
+}
+.nav-cta:hover { background: var(--rust-light); transform: translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  background: var(--ink);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-grain {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
+
+.hero-left {
+  padding: 160px 64px 80px;
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; justify-content: center;
+}
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(201,74,31,0.15); border: 1px solid rgba(201,74,31,0.3);
+  color: var(--rust-light); padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  margin-bottom: 32px; width: fit-content;
+  animation: fade-up 0.6s ease both;
+}
+.eyebrow-dot { width: 6px; height: 6px; background: var(--rust-light); border-radius: 50%; animation: blink 1.4s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.hero-h1 {
+  font-size: clamp(44px, 5.5vw, 72px);
+  color: var(--paper);
+  margin-bottom: 28px;
+  animation: fade-up 0.6s 0.1s ease both;
+}
+.hero-h1 em { color: var(--rust-light); font-style: italic; }
+
+.hero-sub {
+  font-size: 18px; font-weight: 300; color: rgba(245,242,236,0.65);
+  line-height: 1.7; max-width: 480px; margin-bottom: 44px;
+  animation: fade-up 0.6s 0.2s ease both;
+}
+
+.hero-actions {
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+  animation: fade-up 0.6s 0.3s ease both;
+}
+.btn-primary-lg {
+  background: var(--rust); color: var(--white);
+  padding: 16px 32px; border-radius: 8px;
+  font-size: 16px; font-weight: 600; text-decoration: none;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+  border: none; cursor: pointer; font-family: 'Outfit', sans-serif;
+}
+.btn-primary-lg:hover { background: var(--rust-light); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(201,74,31,0.4); }
+.btn-ghost-lg {
+  color: var(--paper); border: 1.5px solid rgba(245,242,236,0.25);
+  padding: 16px 32px; border-radius: 8px;
+  font-size: 16px; font-weight: 500; text-decoration: none;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-ghost-lg:hover { border-color: rgba(245,242,236,0.6); background: rgba(245,242,236,0.05); }
+
+.hero-trust {
+  margin-top: 56px;
+  display: flex; align-items: center; gap: 20px;
+  animation: fade-up 0.6s 0.4s ease both;
+}
+.trust-avatars { display: flex; }
+.trust-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid var(--ink); margin-left: -10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; background: var(--rust);
+}
+.trust-avatar:first-child { margin-left: 0; }
+.trust-text { font-size: 13px; color: rgba(245,242,236,0.5); line-height: 1.4; }
+.trust-text strong { color: var(--paper); font-weight: 600; }
+
+.hero-right {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; justify-content: center;
+  padding: 120px 48px 80px;
+}
+
+/* Phone mockup */
+.phone-mockup {
+  width: 300px;
+  background: #1a1a1a;
+  border-radius: 40px;
+  border: 8px solid #2a2a2a;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);
+  overflow: hidden;
+  position: relative;
+  animation: float 4s ease-in-out infinite;
+}
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+
+.phone-notch {
+  height: 28px; background: #1a1a1a;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; z-index: 2;
+}
+.phone-notch-bar { width: 100px; height: 10px; background: #0d0d0d; border-radius: 5px; }
+
+.phone-screen {
+  background: #f7f6f3;
+  padding: 0;
+  min-height: 520px;
+}
+.phone-restaurant-header {
+  background: #1a1a2e; padding: 14px 16px 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.phone-rest-name { color: #fff; font-size: 13px; font-weight: 600; }
+.phone-table-badge { background: rgba(255,255,255,0.15); color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 10px; }
+
+.phone-menu-area { padding: 12px; }
+.phone-cat-row { display: flex; gap: 6px; margin-bottom: 10px; overflow: hidden; }
+.phone-cat { padding: 4px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; background: #fff; border: 1px solid #e2dfd8; color: #9e9b96; }
+.phone-cat.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+.phone-items { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.phone-item { background: #fff; border-radius: 10px; padding: 10px; border: 1px solid #e8e5df; }
+.phone-item-emoji { font-size: 22px; margin-bottom: 4px; }
+.phone-item-name { font-size: 10px; font-weight: 600; color: #1a1a2e; margin-bottom: 2px; }
+.phone-item-price { font-size: 10px; font-weight: 700; color: #e8572a; }
+
+/* Tracker card overlay */
+.phone-tracker {
+  margin: 6px 12px 12px;
+  background: #fff; border-radius: 10px; padding: 10px 12px;
+  border: 1.5px solid #2d9b5a; background: #edf7f2;
+}
+.pt-title { font-size: 10px; font-weight: 700; color: #2d9b5a; margin-bottom: 8px; }
+.pt-step { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+.pt-dot { width: 14px; height: 14px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 8px; flex-shrink: 0; }
+.pt-dot.done { background: #2d9b5a; color: #fff; }
+.pt-dot.active { background: #e8572a; color: #fff; animation: ring-pulse 1.4s ease-in-out infinite; }
+.pt-dot.pending { background: #e2dfd8; }
+@keyframes ring-pulse { 0%,100%{box-shadow:0 0 0 2px rgba(232,87,42,0.2)} 50%{box-shadow:0 0 0 4px rgba(232,87,42,0.3)} }
+.pt-label { font-size: 9px; font-weight: 500; color: #6b6860; }
+.pt-label.done { color: #2d9b5a; font-weight: 600; }
+.pt-label.active { color: #1a1a2e; font-weight: 700; }
+
+/* Stats floating card */
+.hero-stats-card {
+  position: absolute; left: -30px; bottom: 120px;
+  background: var(--white); border-radius: 16px;
+  padding: 16px 20px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: float 4s 1s ease-in-out infinite;
+  border: 1px solid rgba(0,0,0,0.06);
+  min-width: 180px;
+}
+.hsc-label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 4px; }
+.hsc-value { font-size: 28px; font-weight: 700; color: var(--sage); line-height: 1; }
+.hsc-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+.hero-notif-card {
+  position: absolute; right: 20px; top: 180px;
+  background: var(--ink); border-radius: 12px;
+  padding: 12px 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  animation: float 4s 2s ease-in-out infinite;
+  max-width: 200px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.hnc-icon { font-size: 20px; margin-bottom: 6px; }
+.hnc-title { font-size: 12px; font-weight: 600; color: var(--paper); margin-bottom: 2px; }
+.hnc-sub { font-size: 11px; color: rgba(245,242,236,0.5); }
+
+@keyframes fade-up { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── MARQUEE ── */
+.marquee-wrap {
+  background: var(--rust);
+  padding: 14px 0;
+  overflow: hidden;
+  position: relative;
+}
+.marquee-track {
+  display: flex; gap: 0;
+  animation: marquee 24s linear infinite;
+  white-space: nowrap;
+}
+@keyframes marquee { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.marquee-item {
+  display: inline-flex; align-items: center; gap: 12px;
+  padding: 0 32px;
+  font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.9);
+  letter-spacing: 0.3px;
+}
+.marquee-dot { color: rgba(255,255,255,0.4); font-size: 8px; }
+
+/* ── SECTION BASICS ── */
+section { position: relative; }
+.section-inner { max-width: 1160px; margin: 0 auto; padding: 0 48px; }
+
+/* ── PROBLEM SECTION ── */
+.problem {
+  background: var(--paper);
+  padding: 100px 0;
+}
+.problem-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center;
+}
+.section-eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--rust); margin-bottom: 16px;
+}
+.section-h2 {
+  font-size: clamp(32px, 3.5vw, 48px);
+  line-height: 1.1; margin-bottom: 24px;
+}
+.section-body {
+  font-size: 17px; font-weight: 300; color: var(--muted);
+  line-height: 1.75; margin-bottom: 32px;
+}
+.pain-points { display: flex; flex-direction: column; gap: 16px; }
+.pain-point {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 20px; background: var(--white);
+  border-radius: 12px; border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.pain-point:hover { border-color: var(--rust); transform: translateX(4px); }
+.pain-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+.pain-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.pain-desc { font-size: 13.5px; color: var(--muted); line-height: 1.5; }
+
+.stat-blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.stat-block {
+  background: var(--ink); border-radius: 16px; padding: 28px 24px;
+  position: relative; overflow: hidden;
+}
+.stat-block::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--rust);
+}
+.stat-block-num { font-family: 'Playfair Display', serif; font-size: 48px; font-weight: 900; color: var(--paper); line-height: 1; margin-bottom: 6px; }
+.stat-block-num span { color: var(--rust-light); }
+.stat-block-label { font-size: 13px; color: rgba(245,242,236,0.55); line-height: 1.5; }
+
+/* ── HOW IT WORKS ── */
+.how {
+  background: var(--ink);
+  padding: 100px 0;
+}
+.how-header { text-align: center; margin-bottom: 72px; }
+.how-header .section-h2 { color: var(--paper); }
+.how-header .section-eyebrow { color: var(--rust-light); }
+.how-header p { font-size: 18px; color: rgba(245,242,236,0.55); font-weight: 300; max-width: 560px; margin: 0 auto; }
+
+.steps-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; }
+.step-card {
+  background: #161616; padding: 36px 28px;
+  position: relative; transition: background 0.3s;
+}
+.step-card:hover { background: #1c1c1c; }
+.step-card:first-child { border-radius: 16px 0 0 16px; }
+.step-card:last-child { border-radius: 0 16px 16px 0; }
+.step-num {
+  font-family: 'Playfair Display', serif;
+  font-size: 64px; font-weight: 900;
+  color: rgba(201,74,31,0.15); line-height: 1;
+  margin-bottom: 20px;
+}
+.step-icon { font-size: 32px; margin-bottom: 14px; display: block; }
+.step-title { font-size: 17px; font-weight: 600; color: var(--paper); margin-bottom: 10px; }
+.step-desc { font-size: 14px; color: rgba(245,242,236,0.45); line-height: 1.65; }
+
+/* ── FEATURES ── */
+.features {
+  background: var(--cream);
+  padding: 100px 0;
+}
+.features-header { margin-bottom: 64px; }
+.features-header .section-h2 { max-width: 600px; }
+
+.features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+.feature-card {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: 16px; padding: 32px 28px;
+  transition: all 0.25s;
+  position: relative; overflow: hidden;
+}
+.feature-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  background: var(--rust); transform: scaleX(0); transform-origin: left;
+  transition: transform 0.3s;
+}
+.feature-card:hover { border-color: var(--rust); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(201,74,31,0.1); }
+.feature-card:hover::after { transform: scaleX(1); }
+.feature-emoji { font-size: 36px; margin-bottom: 18px; display: block; }
+.feature-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+.feature-desc { font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+.feature-card.featured {
+  background: var(--ink); border-color: var(--ink);
+  color: var(--paper);
+}
+.feature-card.featured .feature-desc { color: rgba(245,242,236,0.55); }
+.feature-card.featured::after { background: var(--rust-light); }
+
+/* ── SCREENS SHOWCASE ── */
+.showcase {
+  background: var(--paper);
+  padding: 100px 0;
+}
+.showcase-tabs {
+  display: flex; gap: 0; margin-bottom: 48px;
+  border-bottom: 2px solid var(--border);
+}
+.showcase-tab {
+  padding: 14px 28px; font-size: 14px; font-weight: 600;
+  color: var(--muted); cursor: pointer; border: none; background: none;
+  font-family: 'Outfit', sans-serif; transition: all 0.2s;
+  position: relative;
+}
+.showcase-tab.active { color: var(--rust); }
+.showcase-tab.active::after {
+  content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px;
+  background: var(--rust);
+}
+.showcase-panel { display: none; }
+.showcase-panel.active { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+.showcase-copy .section-h2 { margin-bottom: 16px; }
+.showcase-copy p { font-size: 16px; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+.showcase-bullets { display: flex; flex-direction: column; gap: 10px; }
+.showcase-bullet { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; }
+.bullet-check { width: 20px; height: 20px; background: var(--sage); border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+.showcase-screen {
+  background: var(--ink); border-radius: 20px; padding: 24px;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.15);
+}
+.screen-bar { display: flex; gap: 6px; margin-bottom: 16px; }
+.screen-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ── PRICING ── */
+.pricing {
+  background: var(--ink);
+  padding: 100px 0;
+}
+.pricing-header { text-align: center; margin-bottom: 64px; }
+.pricing-header .section-h2 { color: var(--paper); }
+.pricing-header .section-eyebrow { color: var(--rust-light); }
+.pricing-header p { font-size: 17px; color: rgba(245,242,236,0.5); font-weight: 300; margin-top: 16px; }
+
+.pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+.pricing-card {
+  background: #161616; border: 1.5px solid rgba(255,255,255,0.06);
+  border-radius: 20px; padding: 40px 32px;
+  position: relative; transition: all 0.25s;
+}
+.pricing-card:hover { border-color: rgba(255,255,255,0.12); transform: translateY(-4px); }
+.pricing-card.popular {
+  background: var(--rust); border-color: var(--rust);
+}
+.popular-badge {
+  position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+  background: var(--gold-light); color: var(--ink);
+  padding: 4px 16px; border-radius: 20px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.5px; white-space: nowrap;
+}
+.plan-name { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: rgba(245,242,236,0.5); margin-bottom: 8px; }
+.pricing-card.popular .plan-name { color: rgba(255,255,255,0.75); }
+.plan-price {
+  font-family: 'Playfair Display', serif;
+  font-size: 52px; font-weight: 900; color: var(--paper); line-height: 1;
+  margin-bottom: 4px;
+}
+.pricing-card.popular .plan-price { color: var(--white); }
+.plan-price-sub { font-size: 13px; color: rgba(245,242,236,0.45); margin-bottom: 28px; }
+.pricing-card.popular .plan-price-sub { color: rgba(255,255,255,0.65); }
+.plan-features { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
+.plan-feature { display: flex; align-items: center; gap: 10px; font-size: 14px; color: rgba(245,242,236,0.7); }
+.pricing-card.popular .plan-feature { color: rgba(255,255,255,0.9); }
+.plan-check { color: var(--gold-light); font-size: 14px; flex-shrink: 0; }
+.pricing-card.popular .plan-check { color: var(--white); }
+.plan-btn {
+  width: 100%; padding: 14px; border-radius: 10px;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  font-family: 'Outfit', sans-serif; transition: all 0.2s;
+  text-decoration: none; display: block; text-align: center;
+  border: 1.5px solid rgba(255,255,255,0.12); color: var(--paper); background: none;
+}
+.plan-btn:hover { background: rgba(255,255,255,0.08); }
+.pricing-card.popular .plan-btn {
+  background: var(--white); color: var(--rust); border-color: var(--white);
+}
+.pricing-card.popular .plan-btn:hover { background: var(--paper); }
+
+.pricing-note { text-align: center; margin-top: 40px; font-size: 13px; color: rgba(245,242,236,0.35); }
+
+/* ── TESTIMONIALS ── */
+.testimonials {
+  background: var(--cream);
+  padding: 100px 0;
+}
+.testimonials-header { margin-bottom: 56px; }
+.testimonials-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+.testi-card {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: 16px; padding: 32px 28px;
+}
+.testi-stars { color: var(--gold); font-size: 14px; margin-bottom: 16px; letter-spacing: 2px; }
+.testi-quote {
+  font-size: 15px; line-height: 1.75; color: var(--ink);
+  font-style: italic; margin-bottom: 24px;
+  font-family: 'Playfair Display', serif; font-weight: 400;
+}
+.testi-author { display: flex; align-items: center; gap: 12px; }
+.testi-avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--rust); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; font-family: 'Playfair Display', serif;
+  flex-shrink: 0;
+}
+.testi-name { font-size: 14px; font-weight: 600; }
+.testi-role { font-size: 12px; color: var(--muted); }
+
+/* ── CTA SECTION ── */
+.cta-section {
+  background: var(--rust);
+  padding: 100px 0;
+  position: relative; overflow: hidden;
+}
+.cta-section::before {
+  content: 'TableFlow';
+  font-family: 'Playfair Display', serif; font-size: 200px; font-weight: 900;
+  color: rgba(255,255,255,0.06);
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  white-space: nowrap; pointer-events: none;
+}
+.cta-inner { text-align: center; position: relative; z-index: 1; }
+.cta-h2 { font-size: clamp(36px,4vw,60px); color: var(--white); margin-bottom: 20px; }
+.cta-sub { font-size: 18px; color: rgba(255,255,255,0.75); font-weight: 300; max-width: 560px; margin: 0 auto 44px; line-height: 1.6; }
+.cta-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.btn-white {
+  background: var(--white); color: var(--rust);
+  padding: 16px 36px; border-radius: 8px;
+  font-size: 16px; font-weight: 700; text-decoration: none;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+  border: none; cursor: pointer; font-family: 'Outfit', sans-serif;
+}
+.btn-white:hover { background: var(--paper); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+.btn-outline-white {
+  background: none; color: var(--white);
+  border: 2px solid rgba(255,255,255,0.4);
+  padding: 16px 36px; border-radius: 8px;
+  font-size: 16px; font-weight: 500; text-decoration: none;
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-outline-white:hover { border-color: var(--white); background: rgba(255,255,255,0.08); }
+
+/* ── FOOTER ── */
+footer {
+  background: #080808;
+  padding: 60px 48px 40px;
+}
+.footer-top {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 48px; margin-bottom: 48px;
+  max-width: 1160px; margin-left: auto; margin-right: auto;
+  padding-bottom: 48px; border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.footer-logo { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 900; color: var(--paper); margin-bottom: 14px; }
+.footer-logo span { color: var(--rust-light); }
+.footer-desc { font-size: 14px; color: rgba(245,242,236,0.35); line-height: 1.65; max-width: 260px; }
+.footer-col-title { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(245,242,236,0.35); margin-bottom: 16px; }
+.footer-links { display: flex; flex-direction: column; gap: 10px; }
+.footer-links a { font-size: 14px; color: rgba(245,242,236,0.5); text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: var(--paper); }
+.footer-bottom {
+  max-width: 1160px; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; color: rgba(245,242,236,0.2);
+}
+
+/* ── MODALS ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--white); border-radius: 20px; width: 480px;
+  max-width: calc(100vw - 40px); max-height: 90vh; overflow-y: auto;
+  padding: 48px 40px;
+  transform: scale(0.95) translateY(12px); transition: transform 0.25s;
+  box-shadow: 0 40px 120px rgba(0,0,0,0.4);
+}
+.modal-overlay.open .modal-box { transform: scale(1) translateY(0); }
+.modal-close {
+  position: absolute; top: 20px; right: 24px;
+  background: none; border: none; font-size: 24px; cursor: pointer;
+  color: var(--muted); transition: color 0.2s;
+}
+.modal-close:hover { color: var(--ink); }
+.modal-title { font-family: 'Playfair Display', serif; font-size: 30px; margin-bottom: 6px; }
+.modal-sub { font-size: 15px; color: var(--muted); margin-bottom: 32px; line-height: 1.5; }
+.form-field { margin-bottom: 18px; }
+.form-field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--ink); }
+.form-field input, .form-field select, .form-field textarea {
+  width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+  border-radius: 8px; font-size: 15px; font-family: 'Outfit', sans-serif;
+  outline: none; transition: border 0.15s; background: var(--cream);
+}
+.form-field input:focus, .form-field select:focus { border-color: var(--rust); background: var(--white); }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-submit {
+  width: 100%; padding: 16px; background: var(--rust);
+  color: var(--white); border: none; border-radius: 8px;
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  font-family: 'Outfit', sans-serif; transition: all 0.2s; margin-top: 8px;
+}
+.form-submit:hover { background: var(--rust-light); transform: translateY(-1px); }
+.form-note { font-size: 12px; color: var(--muted); text-align: center; margin-top: 12px; line-height: 1.5; }
+
+/* ── SCROLL ANIMATIONS ── */
+.reveal {
+  opacity: 0; transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:1024px) {
+  .hero { grid-template-columns: 1fr; min-height: auto; }
+  .hero-right { display: none; }
+  .hero-left { padding: 140px 40px 80px; }
+  .problem-grid, .showcase-panel.active, .pricing-grid { grid-template-columns: 1fr; }
+  .steps-grid { grid-template-columns: 1fr 1fr; }
+  .features-grid { grid-template-columns: 1fr 1fr; }
+  .testimonials-grid { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr 1fr; }
+  nav { padding: 16px 24px; }
+  .nav-links { display: none; }
+}
+@media(max-width:640px) {
+  .section-inner { padding: 0 24px; }
+  .steps-grid { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr; }
+  .stat-blocks { grid-template-columns: 1fr; }
+  .footer-top { grid-template-columns: 1fr; }
+  .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Table<span>Flow</span></div>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#contact">Contact</a>
+  </div>
+  <button class="nav-cta" onclick="openDemo()">Book a Free Demo</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-grain"></div>
+  <div class="hero-left">
+    <div class="hero-eyebrow"><span class="eyebrow-dot"></span>For Restaurant Owners & Groups</div>
+    <h1 class="hero-h1 display">
+      Turn every table into a<br><em>profit centre.</em>
+    </h1>
+    <p class="hero-sub">
+      TableFlow replaces paper menus, overwhelmed waiters, and slow till queues with a QR-powered ordering system that works on any phone — no app download needed.
+    </p>
+    <div class="hero-actions">
+      <button class="btn-primary-lg" onclick="openDemo()">Book a Free Demo →</button>
+      <a href="#how" class="btn-ghost-lg">See how it works</a>
+    </div>
+    <div class="hero-trust">
+      <div class="trust-avatars">
+        <div class="trust-avatar">🍔</div>
+        <div class="trust-avatar">🍕</div>
+        <div class="trust-avatar">🥗</div>
+        <div class="trust-avatar">☕</div>
+      </div>
+      <div class="trust-text">
+        Built for <strong>South African restaurants</strong><br>
+        Supports PayFast, Peach Payments & Yoco
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <!-- Floating stats card -->
+    <div class="hero-stats-card">
+      <div class="hsc-label">Table turnover today</div>
+      <div class="hsc-value">+34%</div>
+      <div class="hsc-sub">vs. traditional ordering</div>
+    </div>
+
+    <!-- Phone mockup -->
+    <div class="phone-mockup">
+      <div class="phone-notch"><div class="phone-notch-bar"></div></div>
+      <div class="phone-screen">
+        <div class="phone-restaurant-header">
+          <div class="phone-rest-name">Wimpy Sandton</div>
+          <div class="phone-table-badge">Table 7</div>
+        </div>
+        <div class="phone-menu-area">
+          <div class="phone-cat-row">
+            <div class="phone-cat active">Burgers</div>
+            <div class="phone-cat">Breakfast</div>
+            <div class="phone-cat">Drinks</div>
+          </div>
+          <div class="phone-items">
+            <div class="phone-item"><div class="phone-item-emoji">🍔</div><div class="phone-item-name">Classic Burger</div><div class="phone-item-price">R89</div></div>
+            <div class="phone-item"><div class="phone-item-emoji">🧀</div><div class="phone-item-name">Cheese Burger</div><div class="phone-item-price">R99</div></div>
+            <div class="phone-item"><div class="phone-item-emoji">🍗</div><div class="phone-item-name">Chicken Burger</div><div class="phone-item-price">R95</div></div>
+            <div class="phone-item"><div class="phone-item-emoji">🍟</div><div class="phone-item-name">Fries</div><div class="phone-item-price">R39</div></div>
+          </div>
+        </div>
+        <!-- Live tracker -->
+        <div class="phone-tracker">
+          <div class="pt-title">🛎️ Order #101 — Live Tracker</div>
+          <div class="pt-step"><div class="pt-dot done">✓</div><div class="pt-label done">Order received</div></div>
+          <div class="pt-step"><div class="pt-dot done">✓</div><div class="pt-label done">Kitchen preparing</div></div>
+          <div class="pt-step"><div class="pt-dot active">🔥</div><div class="pt-label active">Cooking your meal</div></div>
+          <div class="pt-step"><div class="pt-dot pending"></div><div class="pt-label">Ready — on its way!</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification card -->
+    <div class="hero-notif-card">
+      <div class="hnc-icon">🛎️</div>
+      <div class="hnc-title">Table 7 food is ready!</div>
+      <div class="hnc-sub">Kitchen notified · 14 min prep</div>
+    </div>
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track">
+    <span class="marquee-item">📱 No app download needed <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">🌍 Works internationally <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">💳 PayFast & Peach Payments <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">⚡ Live order tracking <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">🧾 Real-time till dashboard <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">👨‍🍳 Kitchen display screen <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">📊 Multi-branch analytics <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">🖨️ Printable QR codes <span class="marquee-dot">●</span></span>
+    <!-- Duplicate for seamless loop -->
+    <span class="marquee-item">📱 No app download needed <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">🌍 Works internationally <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">💳 PayFast & Peach Payments <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">⚡ Live order tracking <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">🧾 Real-time till dashboard <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">👨‍🍳 Kitchen display screen <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">📊 Multi-branch analytics <span class="marquee-dot">●</span></span>
+    <span class="marquee-item">🖨️ Printable QR codes <span class="marquee-dot">●</span></span>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section class="problem" id="problem">
+  <div class="section-inner">
+    <div class="problem-grid">
+      <div class="reveal">
+        <div class="section-eyebrow">The Problem</div>
+        <h2 class="section-h2 display">Your waiters are drowning.<br>Your customers are leaving.</h2>
+        <p class="section-body">
+          Peak hour at a busy restaurant is controlled chaos. Waiters sprint between tables, orders get missed, customers wait 20 minutes just to pay. Every minute of friction is revenue walking out the door.
+        </p>
+        <div class="pain-points">
+          <div class="pain-point">
+            <div class="pain-icon">😤</div>
+            <div><div class="pain-title">Overwhelmed wait staff</div><div class="pain-desc">One waiter managing 8 tables can't take orders, run food, and process payments simultaneously.</div></div>
+          </div>
+          <div class="pain-point">
+            <div class="pain-icon">⏳</div>
+            <div><div class="pain-title">Payment bottlenecks</div><div class="pain-desc">Customers who've finished eating sit waiting for the bill. That table could have turned over.</div></div>
+          </div>
+          <div class="pain-point">
+            <div class="pain-icon">📋</div>
+            <div><div class="pain-title">Order errors & reprints</div><div class="pain-desc">Handwritten orders misread in a noisy kitchen cost you food, time, and customer goodwill.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-blocks reveal">
+        <div class="stat-block">
+          <div class="stat-block-num">34<span>%</span></div>
+          <div class="stat-block-label">faster table turnover with QR ordering vs. traditional waiter service</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-num">R<span>180</span></div>
+          <div class="stat-block-label">average additional spend per table when customers order at their own pace</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-num">91<span>%</span></div>
+          <div class="stat-block-label">of diners prefer paying at the table rather than queuing at a till</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-num">0<span>x</span></div>
+          <div class="stat-block-label">order errors when customers tap their own order directly into the menu</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div class="section-inner">
+    <div class="how-header reveal">
+      <div class="section-eyebrow" style="color:var(--rust-light);">How It Works</div>
+      <h2 class="section-h2 display" style="color:var(--paper);">Live in under<br><span class="display-italic" style="color:var(--rust-light);">10 minutes.</span></h2>
+      <p>From sign-up to your first QR code on the table — it's that fast.</p>
+    </div>
+    <div class="steps-grid reveal">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <span class="step-icon">🏪</span>
+        <div class="step-title">Set up your restaurant</div>
+        <div class="step-desc">Add your restaurant name, logo, number of tables, currency, and average prep times. Takes 3 minutes.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <span class="step-icon">🍔</span>
+        <div class="step-title">Upload your menu</div>
+        <div class="step-desc">Add menu items with prices, descriptions, and photos. Organise into categories. Toggle items on/off any time.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <span class="step-icon">🖨️</span>
+        <div class="step-title">Print your QR codes</div>
+        <div class="step-desc">Download a PDF with a unique QR code for every table. Print, laminate, and place on the table. Done.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">04</div>
+        <span class="step-icon">💸</span>
+        <div class="step-title">Start taking orders</div>
+        <div class="step-desc">Customers scan, order, pay, and track their meal — live. Your kitchen screen and till update instantly.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="section-inner">
+    <div class="features-header reveal">
+      <div class="section-eyebrow">Everything Included</div>
+      <h2 class="section-h2 display">One system.<br>Four powerful screens.</h2>
+    </div>
+    <div class="features-grid reveal">
+      <div class="feature-card featured">
+        <span class="feature-emoji">📱</span>
+        <div class="feature-title">Customer Menu</div>
+        <div class="feature-desc">A beautiful, branded menu that opens instantly when customers scan the QR. Browse, add to cart, pay, and track their order live — no app download, no account needed.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-emoji">👨‍🍳</span>
+        <div class="feature-title">Kitchen Display</div>
+        <div class="feature-desc">A live Kanban board showing every order by table — New, Cooking, Ready. Kitchen staff tap to advance each order, which instantly updates the customer's tracker.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-emoji">🧾</span>
+        <div class="feature-title">Till Dashboard</div>
+        <div class="feature-desc">The cashier sees every table's payment status in real time. Paid tables light up green. Customers can walk out without queuing — the till already knows.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-emoji">⚙️</span>
+        <div class="feature-title">Admin Panel</div>
+        <div class="feature-desc">Manage your full menu, update prices, toggle items off, set prep times, and generate QR codes — all from one clean dashboard.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-emoji">🛎️</span>
+        <div class="feature-title">Live Order Tracker</div>
+        <div class="feature-desc">Customers see every stage of their meal in real time: received, preparing, cooking, ready. A chime plays and the phone vibrates the moment their food is ready.</div>
+      </div>
+      <div class="feature-card">
+        <span class="feature-emoji">📊</span>
+        <div class="feature-title">Multi-Branch Dashboard</div>
+        <div class="feature-desc">For restaurant groups: see all your branches at once. Revenue, orders, active tables, and tip averages — across every location, in real time.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SHOWCASE -->
+<section class="showcase" id="showcase">
+  <div class="section-inner">
+    <div class="section-eyebrow reveal">See It In Action</div>
+    <h2 class="section-h2 display reveal" style="margin-bottom:40px;">Built for how restaurants<br><span class="display-italic">actually work.</span></h2>
+    <div class="showcase-tabs">
+      <button class="showcase-tab active" onclick="showTab('customer',this)">Customer Menu</button>
+      <button class="showcase-tab" onclick="showTab('kitchen',this)">Kitchen Screen</button>
+      <button class="showcase-tab" onclick="showTab('till',this)">Till Dashboard</button>
+    </div>
+
+    <div class="showcase-panel active" id="tab-customer">
+      <div class="showcase-copy">
+        <h3 class="section-h2 display" style="font-size:32px;">What your customers see</h3>
+        <p>A clean, fast, branded menu that loads in under a second. No friction, no confusion — just scroll, tap, and pay.</p>
+        <div class="showcase-bullets">
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Works on any smartphone browser</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>No app download or account required</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Live order tracker with sound alerts</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Add dessert or drinks mid-meal</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Choose tip amount before paying</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Pay with card, EFT, or SnapScan</div>
+        </div>
+      </div>
+      <div class="showcase-screen">
+        <div class="screen-bar">
+          <div class="screen-dot" style="background:#ff5f57;"></div>
+          <div class="screen-dot" style="background:#febc2e;"></div>
+          <div class="screen-dot" style="background:#28c840;"></div>
+        </div>
+        <div style="background:#f7f6f3;border-radius:8px;padding:20px;">
+          <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;margin-bottom:4px;">Wimpy — Sandton</div>
+          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+            <span style="background:#1a1a2e;color:#fff;padding:3px 10px;border-radius:12px;font-size:11px;">Table 7</span>
+            <span style="font-size:12px;color:#6b6860;margin-top:3px;">● Kitchen open</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:#fff;border:1px solid #e2dfd8;border-radius:10px;padding:12px;">
+              <div style="font-size:24px;margin-bottom:6px;">🍔</div>
+              <div style="font-size:12px;font-weight:600;">Classic Burger</div>
+              <div style="font-size:12px;color:#e8572a;font-weight:700;">R89.00</div>
+            </div>
+            <div style="background:#fff;border:1.5px solid #2d9b5a;border-radius:10px;padding:12px;background:#fafffc;">
+              <div style="font-size:24px;margin-bottom:6px;">🍟</div>
+              <div style="font-size:12px;font-weight:600;">French Fries</div>
+              <div style="font-size:12px;color:#e8572a;font-weight:700;">R39.00</div>
+            </div>
+          </div>
+          <div style="background:#edf7f2;border:1.5px solid #2d9b5a;border-radius:10px;padding:14px;margin-top:12px;">
+            <div style="font-size:12px;font-weight:700;color:#2d9b5a;margin-bottom:8px;">🛎️ Order #101 · Live</div>
+            <div style="font-size:11px;color:#2d9b5a;">✓ Order received · ✓ Preparing · 🔥 Cooking…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="showcase-panel" id="tab-kitchen">
+      <div class="showcase-copy">
+        <h3 class="section-h2 display" style="font-size:32px;">What your kitchen sees</h3>
+        <p>A clean, always-on display that shows every live order organised by status. No paper tickets, no shouting across the pass.</p>
+        <div class="showcase-bullets">
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>New orders appear instantly with a ping</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Colour-coded progress timers per order</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Turns amber at 12 min, red at 20 min</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>One tap advances order to next stage</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Customer tracker updates automatically</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Works on any tablet or TV screen</div>
+        </div>
+      </div>
+      <div class="showcase-screen">
+        <div class="screen-bar">
+          <div class="screen-dot" style="background:#ff5f57;"></div>
+          <div class="screen-dot" style="background:#febc2e;"></div>
+          <div class="screen-dot" style="background:#28c840;"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:4px;">
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#d97b1e;border-bottom:2px solid #d97b1e;padding-bottom:6px;margin-bottom:8px;">⚡ NEW</div>
+            <div style="background:#fff;border:1.5px solid #e2dfd8;border-left:3px solid #d97b1e;border-radius:8px;padding:10px;">
+              <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Table 4</div>
+              <div style="height:3px;background:#2d9b5a;border-radius:2px;margin-bottom:8px;width:15%;"></div>
+              <div style="font-size:10px;color:#6b6860;margin-bottom:6px;">Cheese Burger ×2<br>Fries ×2</div>
+              <div style="background:#fef4e6;color:#d97b1e;font-size:10px;font-weight:700;padding:6px;border-radius:5px;text-align:center;">▶ Start Cooking</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#2559c2;border-bottom:2px solid #2559c2;padding-bottom:6px;margin-bottom:8px;">🔥 COOKING</div>
+            <div style="background:#fff;border:1.5px solid #e2dfd8;border-left:3px solid #2559c2;border-radius:8px;padding:10px;">
+              <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Table 7</div>
+              <div style="height:3px;background:#d97b1e;border-radius:2px;margin-bottom:8px;width:60%;"></div>
+              <div style="font-size:10px;color:#6b6860;margin-bottom:6px;">Classic Burger ×1<br>Onion Rings ×1</div>
+              <div style="background:#e8f1ff;color:#2559c2;font-size:10px;font-weight:700;padding:6px;border-radius:5px;text-align:center;">✓ Mark Ready</div>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:10px;font-weight:700;color:#2d9b5a;border-bottom:2px solid #2d9b5a;padding-bottom:6px;margin-bottom:8px;">✅ READY</div>
+            <div style="background:#fff;border:1.5px solid #2d9b5a;border-left:3px solid #2d9b5a;border-radius:8px;padding:10px;">
+              <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Table 2</div>
+              <div style="height:3px;background:#d63f3f;border-radius:2px;margin-bottom:8px;width:90%;"></div>
+              <div style="font-size:10px;color:#6b6860;margin-bottom:6px;">Big Breakfast ×1<br>Coffee ×1</div>
+              <div style="background:#edf7f2;color:#2d9b5a;font-size:10px;font-weight:700;padding:6px;border-radius:5px;text-align:center;">🍽️ Served</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="showcase-panel" id="tab-till">
+      <div class="showcase-copy">
+        <h3 class="section-h2 display" style="font-size:32px;">What your cashier sees</h3>
+        <p>A live overview of every table in the restaurant. Paid tables go green. The cashier always knows exactly who has settled their bill.</p>
+        <div class="showcase-bullets">
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Real-time payment status per table</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Today's revenue, orders & tip average</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Customers leave without queuing</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>One-click table reset after service</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Works on desktop or wall-mounted screen</div>
+          <div class="showcase-bullet"><div class="bullet-check">✓</div>Multi-branch view for group owners</div>
+        </div>
+      </div>
+      <div class="showcase-screen">
+        <div class="screen-bar">
+          <div class="screen-dot" style="background:#ff5f57;"></div>
+          <div class="screen-dot" style="background:#febc2e;"></div>
+          <div class="screen-dot" style="background:#28c840;"></div>
+        </div>
+        <div style="padding:4px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:8px;">
+            <div style="background:#1a1a1a;border-radius:8px;padding:10px;"><div style="font-size:9px;color:#9e9b96;margin-bottom:3px;">REVENUE</div><div style="font-size:16px;font-weight:700;color:#2d9b5a;">R4,280</div></div>
+            <div style="background:#1a1a1a;border-radius:8px;padding:10px;"><div style="font-size:9px;color:#9e9b96;margin-bottom:3px;">ORDERS</div><div style="font-size:16px;font-weight:700;color:#f5f2ec;">24</div></div>
+            <div style="background:#1a1a1a;border-radius:8px;padding:10px;"><div style="font-size:9px;color:#9e9b96;margin-bottom:3px;">ACTIVE</div><div style="font-size:16px;font-weight:700;color:#f5f2ec;">7</div></div>
+            <div style="background:#1a1a1a;border-radius:8px;padding:10px;"><div style="font-size:9px;color:#9e9b96;margin-bottom:3px;">AVG TIP</div><div style="font-size:16px;font-weight:700;color:#f5f2ec;">16%</div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+            <div style="background:#edf7f2;border:1.5px solid #2d9b5a;border-radius:8px;padding:10px;"><div style="font-size:12px;font-weight:700;">Table 2</div><div style="font-size:14px;font-weight:700;margin:4px 0;">R247</div><div style="font-size:10px;background:#2d9b5a;color:#fff;padding:2px 6px;border-radius:8px;display:inline-block;">Paid ✓</div></div>
+            <div style="background:#fff;border:1.5px solid #2559c2;border-radius:8px;padding:10px;"><div style="font-size:12px;font-weight:700;">Table 7</div><div style="font-size:14px;font-weight:700;margin:4px 0;">R163</div><div style="font-size:10px;background:#2559c2;color:#fff;padding:2px 6px;border-radius:8px;display:inline-block;">Active</div></div>
+            <div style="background:#fff;border:1.5px solid #e2dfd8;border-radius:8px;padding:10px;opacity:0.5;"><div style="font-size:12px;font-weight:700;">Table 9</div><div style="font-size:13px;color:#9e9b96;margin:4px 0;">No orders</div><div style="font-size:10px;background:#e2dfd8;color:#9e9b96;padding:2px 6px;border-radius:8px;display:inline-block;">Empty</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="section-inner">
+    <div class="pricing-header reveal">
+      <div class="section-eyebrow">Simple Pricing</div>
+      <h2 class="section-h2 display">No setup fees.<br>Cancel anytime.</h2>
+      <p>All plans include a 30-day free trial. No credit card required to start.</p>
+    </div>
+    <div class="pricing-grid reveal">
+      <div class="pricing-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">R499</div>
+        <div class="plan-price-sub">per month · per branch</div>
+        <div class="plan-features">
+          <div class="plan-feature"><span class="plan-check">✓</span>Up to 20 tables</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Customer menu + QR codes</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Kitchen display screen</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Till dashboard</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>PayFast integration</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Email support</div>
+        </div>
+        <button class="plan-btn" onclick="openSignup()">Start Free Trial</button>
+      </div>
+
+      <div class="pricing-card popular">
+        <div class="popular-badge">⭐ Most Popular</div>
+        <div class="plan-name">Professional</div>
+        <div class="plan-price">R1,199</div>
+        <div class="plan-price-sub">per month · per branch</div>
+        <div class="plan-features">
+          <div class="plan-feature"><span class="plan-check">✓</span>Unlimited tables</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Everything in Starter</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Live order tracker + alerts</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Multi-payment gateway support</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Real-time analytics</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Priority support</div>
+        </div>
+        <button class="plan-btn" onclick="openSignup()">Start Free Trial</button>
+      </div>
+
+      <div class="pricing-card">
+        <div class="plan-name">Restaurant Group</div>
+        <div class="plan-price">R3,499</div>
+        <div class="plan-price-sub">per month · up to 10 branches</div>
+        <div class="plan-features">
+          <div class="plan-feature"><span class="plan-check">✓</span>Everything in Professional</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Multi-branch dashboard</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Group-level analytics</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Custom branding per branch</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Dedicated account manager</div>
+          <div class="plan-feature"><span class="plan-check">✓</span>Staff training included</div>
+        </div>
+        <button class="plan-btn" onclick="openDemo()">Book a Demo</button>
+      </div>
+    </div>
+    <div class="pricing-note">All prices exclude VAT. Enterprise pricing available for groups with 10+ branches. <a href="#" style="color:rgba(245,242,236,0.5);">Contact us.</a></div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials" id="testimonials">
+  <div class="section-inner">
+    <div class="testimonials-header reveal">
+      <div class="section-eyebrow">What Restaurant Owners Say</div>
+      <h2 class="section-h2 display">The results speak<br><span class="display-italic">for themselves.</span></h2>
+    </div>
+    <div class="testimonials-grid reveal">
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"We turned our Saturday night service from a nightmare into a machine. Tables that used to take 90 minutes are now clearing in 60. That's two extra covers a night per table."</div>
+        <div class="testi-author">
+          <div class="testi-avatar">MN</div>
+          <div><div class="testi-name">Marco Nkosi</div><div class="testi-role">Owner, The Grill Room · Johannesburg</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"Our waiters were constantly under pressure. Now they focus on hospitality — greeting guests, making recommendations — instead of sprinting with notepads. The team morale alone is worth it."</div>
+        <div class="testi-author">
+          <div class="testi-avatar">SB</div>
+          <div><div class="testi-name">Sandra Botha</div><div class="testi-role">Franchise Owner · Cape Town</div></div>
+        </div>
+      </div>
+      <div class="testi-card">
+        <div class="testi-stars">★★★★★</div>
+        <div class="testi-quote">"The multi-branch dashboard is exactly what we needed. I can see revenue across all five of our locations from my phone while I'm at home. The group reports alone save us hours every week."</div>
+        <div class="testi-author">
+          <div class="testi-avatar">DP</div>
+          <div><div class="testi-name">Deon Pietersen</div><div class="testi-role">MD, Coastal Eats Group · Durban</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section" id="contact">
+  <div class="section-inner">
+    <div class="cta-inner reveal">
+      <h2 class="cta-h2 display">Ready to transform<br>your restaurant?</h2>
+      <p class="cta-sub">Book a free 30-minute demo. We'll show you the full system live, answer every question, and get you set up on the same call.</p>
+      <div class="cta-actions">
+        <button class="btn-white" onclick="openDemo()">📅 Book Free Demo</button>
+        <button class="btn-outline-white" onclick="openSignup()">🚀 Start Free Trial</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-top">
+    <div>
+      <div class="footer-logo">Table<span>Flow</span></div>
+      <div class="footer-desc">QR-powered ordering, payment, and kitchen management for modern restaurants. Built in South Africa. Works worldwide.</div>
+    </div>
+    <div>
+      <div class="footer-col-title">Product</div>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#how">How it works</a>
+        <a href="#" onclick="openDemo()">Book a Demo</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Payments</div>
+      <div class="footer-links">
+        <a href="#">PayFast</a>
+        <a href="#">Peach Payments</a>
+        <a href="#">Ozow (EFT)</a>
+        <a href="#">Yoco</a>
+      </div>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Service</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2025 TableFlow. All rights reserved.</span>
+    <span>Made with ♥ in South Africa 🇿🇦</span>
+  </div>
+</footer>
+
+<!-- DEMO MODAL -->
+<div class="modal-overlay" id="demo-modal">
+  <div class="modal-box" style="position:relative;">
+    <button class="modal-close" onclick="closeModals()">×</button>
+    <div class="modal-title display">Book a Free Demo</div>
+    <div class="modal-sub">30 minutes. We'll show you the full system live and get you set up on the same call. No obligation.</div>
+    <div class="form-field"><label>Your name</label><input type="text" placeholder="e.g. John Smith"></div>
+    <div class="form-row-2">
+      <div class="form-field"><label>Email</label><input type="email" placeholder="john@restaurant.co.za"></div>
+      <div class="form-field"><label>Phone</label><input type="tel" placeholder="+27 82 000 0000"></div>
+    </div>
+    <div class="form-field"><label>Restaurant / Group name</label><input type="text" placeholder="e.g. Wimpy Sandton"></div>
+    <div class="form-row-2">
+      <div class="form-field"><label>Number of branches</label><select><option>1 branch</option><option>2–5 branches</option><option>6–10 branches</option><option>10+ branches</option></select></div>
+      <div class="form-field"><label>Number of tables</label><select><option>Under 20</option><option>20–50</option><option>50–100</option><option>100+</option></select></div>
+    </div>
+    <button class="form-submit" onclick="submitForm('demo')">📅 Book My Free Demo</button>
+    <div class="form-note">We'll contact you within 2 business hours to confirm your demo time.</div>
+  </div>
+</div>
+
+<!-- SIGNUP MODAL -->
+<div class="modal-overlay" id="signup-modal">
+  <div class="modal-box" style="position:relative;">
+    <button class="modal-close" onclick="closeModals()">×</button>
+    <div class="modal-title display">Start Your Free Trial</div>
+    <div class="modal-sub">30 days free. No credit card required. Be live with your first QR code in under 10 minutes.</div>
+    <div class="form-row-2">
+      <div class="form-field"><label>First name</label><input type="text" placeholder="John"></div>
+      <div class="form-field"><label>Last name</label><input type="text" placeholder="Smith"></div>
+    </div>
+    <div class="form-field"><label>Work email</label><input type="email" placeholder="john@restaurant.co.za"></div>
+    <div class="form-field"><label>Restaurant name</label><input type="text" placeholder="e.g. The Grill Room"></div>
+    <div class="form-row-2">
+      <div class="form-field"><label>City</label><input type="text" placeholder="Johannesburg"></div>
+      <div class="form-field"><label>Country</label><select><option>South Africa</option><option>Namibia</option><option>Botswana</option><option>Zimbabwe</option><option>Nigeria</option><option>Kenya</option><option>United Kingdom</option><option>Other</option></select></div>
+    </div>
+    <button class="form-submit" onclick="submitForm('signup')">🚀 Create My Free Account</button>
+    <div class="form-note">By signing up you agree to our Terms of Service and Privacy Policy.</div>
+  </div>
+</div>
+
+<script>
+// ── MODALS ──
+function openDemo(){ document.getElementById('demo-modal').classList.add('open'); document.body.style.overflow='hidden'; }
+function openSignup(){ document.getElementById('signup-modal').classList.add('open'); document.body.style.overflow='hidden'; }
+function closeModals(){
+  document.querySelectorAll('.modal-overlay').forEach(m=>m.classList.remove('open'));
+  document.body.style.overflow='';
+}
+document.querySelectorAll('.modal-overlay').forEach(m=>{
+  m.addEventListener('click',function(e){ if(e.target===this) closeModals(); });
+});
+
+function submitForm(type){
+  closeModals();
+  // Show success toast
+  const toast = document.createElement('div');
+  toast.style.cssText='position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#2d9b5a;color:#fff;padding:16px 28px;border-radius:10px;font-size:15px;font-weight:600;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,0.3);animation:slide-in 0.3s ease;font-family:Outfit,sans-serif;';
+  toast.textContent = type==='demo' ? '✅ Demo request sent! We\'ll be in touch within 2 hours.' : '✅ Account created! Check your email to get started.';
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.remove(), 5000);
+}
+
+// ── TABS ──
+function showTab(tab, btn){
+  document.querySelectorAll('.showcase-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.showcase-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── SCROLL REVEAL ──
+const observer = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add('visible'); });
+},{ threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el=>observer.observe(el));
+
+// ── NAV SCROLL ──
+window.addEventListener('scroll',()=>{
+  const nav = document.querySelector('nav');
+  if(window.scrollY > 60){
+    nav.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+  } else {
+    nav.style.borderBottom = '1px solid rgba(255,255,255,0.06)';
+  }
+});
+
+// ── ESC KEY ──
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModals(); });
+</script>
+</body>
+</html>
