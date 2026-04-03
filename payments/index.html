@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TableFlow — Payment System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --brand:#1a1a2e;--brand2:#e8572a;--brand2h:#d44820;
+  --surface:#fff;--surface2:#f7f6f3;
+  --text:#1a1a2e;--text2:#6b6860;--text3:#9e9b96;
+  --border:#e2dfd8;--green:#2d9b5a;--green-bg:#edf7f2;
+  --red:#d63f3f;--amber:#d97b1e;--amber-bg:#fef4e6;
+  --radius:14px;--radius-sm:8px;
+  --shadow:0 2px 12px rgba(26,26,46,0.08);
+  --shadow-lg:0 8px 40px rgba(26,26,46,0.14);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--text);min-height:100vh;}
+
+/* ── NAV ── */
+.app-nav{background:var(--brand);display:flex;align-items:center;padding:0 0 0 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,0.3);}
+.logo{font-family:'DM Serif Display',serif;color:#fff;font-size:22px;margin-right:32px;letter-spacing:-0.5px;}
+.logo span{color:var(--brand2);}
+.nav-tabs{display:flex;flex:1;}
+.nav-tab{padding:18px 20px;color:rgba(255,255,255,0.55);font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;transition:all 0.18s;position:relative;white-space:nowrap;}
+.nav-tab:hover{color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.05);}
+.nav-tab.active{color:#fff;background:rgba(255,255,255,0.1);}
+.nav-tab.active::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--brand2);border-radius:2px 2px 0 0;}
+.nav-right{padding:0 20px;display:flex;align-items:center;gap:10px;}
+.restaurant-badge{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;}
+.sandbox-badge{background:rgba(232,87,42,0.2);border:1px solid rgba(232,87,42,0.4);color:var(--brand2);padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.5px;}
+
+.view{display:none;}.view.active{display:block;}
+
+/* ── SHARED ── */
+.page-wrap{max-width:900px;margin:0 auto;padding:32px 24px;}
+.page-title{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:6px;}
+.page-sub{font-size:15px;color:var(--text2);margin-bottom:28px;}
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:16px;}
+.card-title{font-size:14px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.form-row.full{grid-template-columns:1fr;}
+.form-row.three{grid-template-columns:1fr 1fr 1fr;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:12px;font-weight:600;color:var(--text2);}
+.form-input{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;transition:border 0.15s;background:var(--surface2);}
+.form-input:focus{border-color:var(--brand);background:var(--surface);}
+.form-select{padding:11px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;outline:none;background:var(--surface2);}
+.form-hint{font-size:11px;color:var(--text3);margin-top:3px;line-height:1.5;}
+.btn{padding:12px 24px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;border:none;}
+.btn-primary{background:var(--brand2);color:#fff;}
+.btn-primary:hover{background:var(--brand2h);transform:translateY(-1px);}
+.btn-secondary{background:var(--brand);color:#fff;}
+.btn-secondary:hover{background:#2a2a4e;}
+.btn-ghost{background:none;border:1.5px solid var(--border);color:var(--text2);}
+.btn-ghost:hover{border-color:var(--text);color:var(--text);}
+.btn:disabled{background:var(--border);color:var(--text3);cursor:not-allowed;transform:none;}
+
+/* ── STATUS BADGES ── */
+.badge{padding:4px 10px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block;}
+.badge-green{background:var(--green-bg);color:var(--green);}
+.badge-amber{background:var(--amber-bg);color:var(--amber);}
+.badge-red{background:#fdf0f0;color:var(--red);}
+.badge-gray{background:var(--surface2);color:var(--text3);}
+.badge-blue{background:#e8f1ff;color:#2559c2;}
+
+/* ── CHECKOUT MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(26,26,46,0.6);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;backdrop-filter:blur(4px);}
+.modal-backdrop.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border-radius:20px;width:460px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:scale(0.96) translateY(12px);transition:transform 0.25s;}
+.modal-backdrop.open .modal{transform:scale(1) translateY(0);}
+.modal-header{padding:28px 28px 0;}
+.modal-title{font-family:'DM Serif Display',serif;font-size:24px;margin-bottom:4px;}
+.modal-sub{font-size:14px;color:var(--text2);margin-bottom:20px;}
+.modal-body{padding:0 28px 28px;}
+
+/* ORDER SUMMARY */
+.order-summary{background:var(--surface2);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px;}
+.order-summary-row{display:flex;justify-content:space-between;font-size:13.5px;padding:4px 0;}
+.order-summary-row.total{font-size:16px;font-weight:700;border-top:1px solid var(--border);padding-top:10px;margin-top:6px;}
+.order-summary-row.platform-fee{font-size:11px;color:var(--text3);}
+
+/* PAYMENT METHODS */
+.pay-method-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.pay-method-card{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 12px;cursor:pointer;transition:all 0.15s;text-align:center;}
+.pay-method-card:hover,.pay-method-card.active{border-color:var(--brand2);background:#fff8f5;}
+.pay-method-card.active{border-width:2px;}
+.pmc-icon{font-size:26px;margin-bottom:6px;}
+.pmc-name{font-size:13px;font-weight:600;color:var(--text);}
+.pmc-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+
+/* CARD FORM */
+.card-form{display:none;margin-bottom:16px;}
+.card-form.show{display:block;}
+.card-input-wrap{position:relative;}
+.card-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;}
+
+/* PAYFAST REDIRECT */
+.pf-redirect{text-align:center;padding:20px 0;}
+.pf-redirect-icon{font-size:48px;margin-bottom:12px;}
+.pf-redirect-title{font-size:18px;font-weight:600;margin-bottom:8px;}
+.pf-redirect-sub{font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.6;}
+.pf-form{display:none;}
+
+/* SUCCESS */
+.success-wrap{text-align:center;padding:20px 0;}
+.success-icon{font-size:60px;margin-bottom:14px;}
+.success-title{font-family:'DM Serif Display',serif;font-size:26px;margin-bottom:8px;}
+.success-sub{font-size:14px;color:var(--text2);line-height:1.65;margin-bottom:20px;}
+.receipt-box{background:var(--surface2);border-radius:var(--radius-sm);padding:16px;text-align:left;margin-bottom:20px;}
+.receipt-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px dotted var(--border);}
+.receipt-row:last-child{border:none;font-weight:700;}
+
+/* ── SETTINGS TAB ── */
+.settings-section{margin-bottom:24px;}
+.settings-section-title{font-size:13px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+.gateway-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;transition:all 0.2s;cursor:pointer;}
+.gateway-card:hover{border-color:var(--brand);}
+.gateway-card.selected{border-color:var(--brand2);border-width:2px;}
+.gateway-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.gateway-name{font-size:15px;font-weight:700;}
+.gateway-desc{font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5;}
+.gateway-fields{display:none;}
+.gateway-card.selected .gateway-fields{display:block;}
+
+/* ── SUBSCRIPTION TAB ── */
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.plan-card{border:1.5px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;cursor:pointer;transition:all 0.2s;}
+.plan-card:hover{border-color:var(--brand);}
+.plan-card.active{border-color:var(--brand2);border-width:2px;}
+.plan-popular{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--brand2);color:#fff;font-size:10px;font-weight:700;padding:3px 12px;border-radius:10px;white-space:nowrap;}
+.plan-name{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);margin-bottom:6px;}
+.plan-price{font-size:28px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.plan-period{font-size:12px;color:var(--text3);margin-bottom:12px;}
+.plan-features{font-size:12.5px;color:var(--text2);line-height:1.9;}
+
+/* ── EARNINGS TAB ── */
+.earnings-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.earning-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:20px;}
+.earning-label{font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.earning-value{font-size:28px;font-weight:700;color:var(--text);}
+.earning-value.green{color:var(--green);}
+.earning-sub{font-size:12px;color:var(--text2);margin-top:4px;}
+
+.earnings-table{width:100%;border-collapse:collapse;}
+.earnings-table th{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);}
+.earnings-table td{font-size:13px;padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.earnings-table tr:last-child td{border:none;}
+.earnings-table tr:hover td{background:var(--surface2);}
+
+/* NOTIFICATION */
+.notif-bar{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.notif{background:var(--brand);color:#fff;padding:12px 18px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;box-shadow:var(--shadow-lg);pointer-events:all;animation:slide-in 0.3s ease;max-width:320px;}
+.notif.success{background:var(--green);}
+.notif.warning{background:var(--amber);}
+.notif.alert{background:var(--brand2);}
+@keyframes slide-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+</style>
+</head>
+<body>
+
+<nav class="app-nav">
+  <div class="logo">Table<span>Flow</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showView('checkout',this)">💳 Checkout Demo</button>
+    <button class="nav-tab" onclick="showView('gateway',this)">⚙️ Gateway Settings</button>
+    <button class="nav-tab" onclick="showView('subscription',this)">📦 Subscriptions</button>
+    <button class="nav-tab" onclick="showView('earnings',this)">💰 Your Earnings</button>
+  </div>
+  <div class="nav-right">
+    <span class="sandbox-badge">⚠ SANDBOX MODE</span>
+    <span class="restaurant-badge">Wimpy — Sandton</span>
+  </div>
+</nav>
+
+<div class="notif-bar" id="notif-bar"></div>
+
+<!-- ══════ CHECKOUT DEMO ══════ -->
+<div class="view active" id="view-checkout">
+  <div class="page-wrap">
+    <div class="page-title">Customer Checkout</div>
+    <div class="page-sub">This is what happens when a customer taps "Pay Now" in the app. Test the full payment flow below.</div>
+
+    <!-- Demo order builder -->
+    <div class="card">
+      <div class="card-title">🛒 Demo Order — Table 7</div>
+      <div id="demo-order-items">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div><div style="font-size:14px;font-weight:500;">🍔 Classic Burger × 1</div></div>
+          <div style="font-size:14px;font-weight:600;">R89.00</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);">
+          <div><div style="font-size:14px;font-weight:500;">🍟 French Fries × 2</div></div>
+          <div style="font-size:14px;font-weight:600;">R78.00</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;">
+          <div><div style="font-size:14px;font-weight:500;">🥤 Coca-Cola × 1</div></div>
+          <div style="font-size:14px;font-weight:600;">R35.00</div>
+        </div>
+      </div>
+      <div style="border-top:1.5px solid var(--border);margin-top:12px;padding-top:12px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;color:var(--text2);">
+          <span>Subtotal</span><span>R202.00</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:13px;color:var(--text2);">
+          <span>Tip (15%)</span><span>R30.30</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:17px;font-weight:700;margin-top:8px;">
+          <span>Total</span><span style="color:var(--brand2);">R232.30</span>
+        </div>
+      </div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" style="width:100%;padding:15px;font-size:15px;" onclick="openCheckout()">
+          Pay R232.30 →
+        </button>
+      </div>
+    </div>
+
+    <!-- How it works explanation -->
+    <div class="card">
+      <div class="card-title">💡 How the Split Works</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center;">
+        <div style="padding:16px;background:var(--surface2);border-radius:10px;">
+          <div style="font-size:28px;margin-bottom:8px;">👤</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Customer Pays</div>
+          <div style="font-size:22px;font-weight:700;color:var(--brand2);">R232.30</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">Full meal + tip</div>
+        </div>
+        <div style="padding:16px;background:var(--green-bg);border-radius:10px;">
+          <div style="font-size:28px;margin-bottom:8px;">🏪</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">Restaurant Receives</div>
+          <div style="font-size:22px;font-weight:700;color:var(--green);">R231.14</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">99.5% of total</div>
+        </div>
+        <div style="padding:16px;background:var(--amber-bg);border-radius:10px;">
+          <div style="font-size:28px;margin-bottom:8px;">⚡</div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:4px;">TableFlow Earns</div>
+          <div style="font-size:22px;font-weight:700;color:var(--amber);">R1.16</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px;">0.5% platform fee</div>
+        </div>
+      </div>
+      <div style="margin-top:16px;padding:12px 16px;background:var(--surface2);border-radius:8px;font-size:13px;color:var(--text2);line-height:1.6;">
+        💳 Payment is processed by <strong>PayFast Connect</strong>. The split happens automatically at the gateway — no manual transfers needed. Both parties receive settlement within <strong>2–3 business days</strong>.
+      </div>
+    </div>
+
+    <!-- PayFast webhook info -->
+    <div class="card">
+      <div class="card-title">🔗 PayFast Webhook Configuration</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+        Once you have your PayFast Connect credentials, configure these URLs in your PayFast merchant dashboard:
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:4px;">NOTIFY URL (ITN — Instant Transaction Notification)</div>
+          <div style="font-family:monospace;font-size:13px;color:var(--brand);">https://ujiezcaxgalbkrzdzrlo.supabase.co/functions/v1/payfast-webhook</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:4px;">RETURN URL (after successful payment)</div>
+          <div style="font-family:monospace;font-size:13px;color:var(--brand);">https://yourusername.github.io/tableflow/app/?payment=success</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;padding:12px 14px;">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);margin-bottom:4px;">CANCEL URL (if customer cancels)</div>
+          <div style="font-family:monospace;font-size:13px;color:var(--brand);">https://yourusername.github.io/tableflow/app/?payment=cancelled</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ GATEWAY SETTINGS ══════ -->
+<div class="view" id="view-gateway">
+  <div class="page-wrap">
+    <div class="page-title">Payment Gateway Settings</div>
+    <div class="page-sub">Configure how customers pay for their meals. Each restaurant chooses their own gateway — money goes directly to them.</div>
+
+    <!-- TableFlow platform settings -->
+    <div class="card">
+      <div class="card-title">⚡ TableFlow Platform Account (Your PayFast Connect)</div>
+      <div style="padding:10px 14px;background:var(--amber-bg);border-radius:8px;font-size:13px;color:var(--amber);margin-bottom:16px;font-weight:500;">
+        ⚠️ Sandbox mode active. Replace with live credentials once PayFast Connect approves your account.
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Your PayFast Merchant ID</label>
+          <input class="form-input" id="pf-platform-id" placeholder="e.g. 10000100" value="10000100">
+          <div class="form-hint">Your Coetzee Data AI Consultants PayFast merchant ID</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your PayFast Merchant Key</label>
+          <input class="form-input" id="pf-platform-key" placeholder="e.g. 46f0cd694581a" value="46f0cd694581a">
+          <div class="form-hint">Your PayFast merchant key — keep this secret</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Your PayFast Passphrase</label>
+          <input class="form-input" type="password" id="pf-platform-pass" placeholder="Your PayFast passphrase">
+          <div class="form-hint">Used to sign payment requests — never exposed to customers</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Platform Fee %</label>
+          <input class="form-input" type="number" id="platform-fee" value="0.5" min="0" max="5" step="0.1">
+          <div class="form-hint">% of each meal transaction you earn. Default: 0.5%</div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Environment</label>
+          <select class="form-select" id="pf-env">
+            <option value="sandbox">Sandbox (testing)</option>
+            <option value="live">Live (production)</option>
+          </select>
+          <div class="form-hint">Switch to Live once PayFast Connect approves you</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Settlement Currency</label>
+          <select class="form-select">
+            <option>ZAR — South African Rand</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="savePlatformSettings()">Save Platform Settings</button>
+    </div>
+
+    <!-- Restaurant gateway options -->
+    <div class="card">
+      <div class="card-title">🏪 Restaurant Payment Gateway (Per Restaurant)</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;">
+        Each restaurant chooses their own payment gateway. Their customers' money goes directly to them — you only receive your 0.5% platform fee via PayFast Connect.
+      </div>
+
+      <!-- PayFast -->
+      <div class="gateway-card selected" id="gw-payfast" onclick="selGateway('payfast')">
+        <div class="gateway-card-head">
+          <div>
+            <div class="gateway-name">💳 PayFast</div>
+            <div style="font-size:12px;color:var(--text3);">Card, EFT, SnapScan, Mobicred</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-green">Recommended</span>
+            <input type="radio" name="gateway" checked>
+          </div>
+        </div>
+        <div class="gateway-desc">Most widely used in SA. Supports cards, instant EFT, SnapScan, and Mobicred. Works with PayFast Connect for automatic split payments.</div>
+        <div class="gateway-fields">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Restaurant PayFast Merchant ID</label>
+              <input class="form-input" id="rest-pf-id" placeholder="Restaurant's merchant ID">
+              <div class="form-hint">Restaurant gets this from their PayFast account</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Restaurant PayFast Merchant Key</label>
+              <input class="form-input" id="rest-pf-key" placeholder="Restaurant's merchant key">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Yoco -->
+      <div class="gateway-card" id="gw-yoco" onclick="selGateway('yoco')">
+        <div class="gateway-card-head">
+          <div>
+            <div class="gateway-name">📱 Yoco</div>
+            <div style="font-size:12px;color:var(--text3);">Card payments, QR pay</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-blue">Popular in SA restaurants</span>
+            <input type="radio" name="gateway">
+          </div>
+        </div>
+        <div class="gateway-desc">Very popular with SA restaurants. No split payment API — platform fee collected via webhook and separate payout. Slightly more setup required.</div>
+        <div class="gateway-fields">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Yoco Secret Key</label>
+              <input class="form-input" id="rest-yoco-key" placeholder="sk_live_...">
+              <div class="form-hint">From Yoco developer dashboard</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Yoco Public Key</label>
+              <input class="form-input" id="rest-yoco-pub" placeholder="pk_live_...">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ozow -->
+      <div class="gateway-card" id="gw-ozow" onclick="selGateway('ozow')">
+        <div class="gateway-card-head">
+          <div>
+            <div class="gateway-name">🏦 Ozow</div>
+            <div style="font-size:12px;color:var(--text3);">Instant EFT</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge badge-gray">EFT specialist</span>
+            <input type="radio" name="gateway">
+          </div>
+        </div>
+        <div class="gateway-desc">Best for instant EFT payments. Lower transaction fees than card processing. Great for customers who prefer bank transfers.</div>
+        <div class="gateway-fields">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Ozow Site Code</label>
+              <input class="form-input" id="rest-ozow-site" placeholder="TST-TST-001">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ozow API Key</label>
+              <input class="form-input" id="rest-ozow-key" placeholder="Your Ozow API key">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" style="margin-top:8px;" onclick="saveGatewaySettings()">Save Gateway Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ SUBSCRIPTION ══════ -->
+<div class="view" id="view-subscription">
+  <div class="page-wrap">
+    <div class="page-title">Subscription Billing</div>
+    <div class="page-sub">Monthly SaaS fees paid by restaurants to you via PayFast recurring billing.</div>
+
+    <!-- Current status -->
+    <div class="card">
+      <div class="card-title">📊 Current Subscription Status</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px;">
+        <div style="background:var(--surface2);border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">ACTIVE SUBSCRIBERS</div>
+          <div style="font-size:28px;font-weight:700;color:var(--green);" id="sub-active">1</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">MONTHLY RECURRING</div>
+          <div style="font-size:28px;font-weight:700;" id="sub-mrr">R1,199</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:10px;padding:16px;text-align:center;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">NEXT BILLING DATE</div>
+          <div style="font-size:18px;font-weight:700;" id="sub-next-date">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plans -->
+    <div class="card">
+      <div class="card-title">📦 Subscription Plans</div>
+      <div class="plan-grid">
+        <div class="plan-card">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">R499</div>
+          <div class="plan-period">per month · per branch</div>
+          <div class="plan-features">✓ Up to 20 tables<br>✓ Menu + QR codes<br>✓ Kitchen display<br>✓ Till dashboard<br>✓ PayFast payments<br>✓ Email support</div>
+        </div>
+        <div class="plan-card active">
+          <div class="plan-popular">Most Popular</div>
+          <div class="plan-name">Professional</div>
+          <div class="plan-price">R1,199</div>
+          <div class="plan-period">per month · per branch</div>
+          <div class="plan-features">✓ Unlimited tables<br>✓ Live order tracker<br>✓ Multi-payment gateways<br>✓ Real-time analytics<br>✓ Split payment support<br>✓ Priority support</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Restaurant Group</div>
+          <div class="plan-price">R3,499</div>
+          <div class="plan-period">up to 10 branches/month</div>
+          <div class="plan-features">✓ Everything in Pro<br>✓ Multi-branch dashboard<br>✓ Group analytics<br>✓ Dedicated account manager<br>✓ Custom branding<br>✓ Staff training included</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- How PayFast recurring works -->
+    <div class="card">
+      <div class="card-title">🔄 How Recurring Billing Works</div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--brand2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">1</div>
+          <div><div style="font-size:14px;font-weight:600;margin-bottom:3px;">Restaurant signs up during onboarding</div><div style="font-size:13px;color:var(--text2);">They choose a plan and enter their card details. PayFast tokenises the card — you never see the card number.</div></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--brand2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">2</div>
+          <div><div style="font-size:14px;font-weight:600;margin-bottom:3px;">PayFast charges automatically every month</div><div style="font-size:13px;color:var(--text2);">On the same date each month, PayFast debits the restaurant's card and deposits the subscription fee into your account.</div></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--brand2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">3</div>
+          <div><div style="font-size:14px;font-weight:600;margin-bottom:3px;">Failed payments trigger automatic retry</div><div style="font-size:13px;color:var(--text2);">PayFast retries failed payments and notifies you via webhook. The app shows a "payment overdue" warning to the restaurant owner.</div></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start;">
+          <div style="width:32px;height:32px;border-radius:50%;background:var(--green);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;">4</div>
+          <div><div style="font-size:14px;font-weight:600;margin-bottom:3px;">You get paid, restaurants stay live</div><div style="font-size:13px;color:var(--text2);">Settlement lands in your Coetzee Data AI Consultants bank account within 2–3 business days. Access is automatically suspended after 7 days of non-payment.</div></div>
+        </div>
+      </div>
+
+      <!-- PayFast subscription form (hidden until credentials added) -->
+      <div style="margin-top:20px;padding:16px;background:var(--surface2);border-radius:10px;">
+        <div style="font-size:13px;font-weight:600;margin-bottom:8px;">PayFast Recurring Billing API Endpoint</div>
+        <div style="font-family:monospace;font-size:12px;color:var(--brand);background:var(--surface);padding:10px;border-radius:6px;word-break:break-all;">
+          POST https://www.payfast.co.za/eng/process (sandbox: https://sandbox.payfast.co.za/eng/process)
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Required fields: m_payment_id, merchant_id, merchant_key, amount, item_name, subscription_type=1, billing_date, recurring_amount, frequency=3 (monthly), cycles=0 (indefinite)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ EARNINGS ══════ -->
+<div class="view" id="view-earnings">
+  <div class="page-wrap">
+    <div class="page-title">Your Earnings — TableFlow Platform</div>
+    <div class="page-sub">Combined income from subscription fees and 0.5% transaction fees across all restaurants.</div>
+
+    <div class="earnings-grid">
+      <div class="earning-card">
+        <div class="earning-label">Total Earnings Today</div>
+        <div class="earning-value green" id="earn-today">R0.00</div>
+        <div class="earning-sub">subscriptions + transaction fees</div>
+      </div>
+      <div class="earning-card">
+        <div class="earning-label">Transaction Fees (Month)</div>
+        <div class="earning-value" id="earn-txn">R0.00</div>
+        <div class="earning-sub">0.5% of all meal payments</div>
+      </div>
+      <div class="earning-card">
+        <div class="earning-label">Subscription Revenue (Month)</div>
+        <div class="earning-value" id="earn-sub">R1,199.00</div>
+        <div class="earning-sub">1 active subscriber</div>
+      </div>
+    </div>
+
+    <!-- Revenue projection -->
+    <div class="card">
+      <div class="card-title">📈 Revenue Projection — As You Scale</div>
+      <table class="earnings-table" style="width:100%;">
+        <thead>
+          <tr>
+            <th>Restaurants</th>
+            <th>Avg Monthly Meals/Restaurant</th>
+            <th>Subscription Revenue</th>
+            <th>Transaction Fee Revenue</th>
+            <th>Total Monthly Income</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>5</strong></td>
+            <td>500 meals @ R150 avg</td>
+            <td style="color:var(--green);">R5,995</td>
+            <td style="color:var(--amber);">R1,875</td>
+            <td><strong>R7,870/mo</strong></td>
+          </tr>
+          <tr>
+            <td><strong>20</strong></td>
+            <td>500 meals @ R150 avg</td>
+            <td style="color:var(--green);">R23,980</td>
+            <td style="color:var(--amber);">R7,500</td>
+            <td><strong>R31,480/mo</strong></td>
+          </tr>
+          <tr>
+            <td><strong>50</strong></td>
+            <td>800 meals @ R180 avg</td>
+            <td style="color:var(--green);">R59,950</td>
+            <td style="color:var(--amber);">R36,000</td>
+            <td><strong>R95,950/mo</strong></td>
+          </tr>
+          <tr>
+            <td><strong>100</strong></td>
+            <td>1000 meals @ R200 avg</td>
+            <td style="color:var(--green);">R119,900</td>
+            <td style="color:var(--amber);">R100,000</td>
+            <td><strong style="color:var(--green);font-size:16px;">R219,900/mo</strong></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="font-size:12px;color:var(--text3);margin-top:12px;">* Based on Professional plan (R1,199/mo) per restaurant. Transaction fees = 0.5% of all meal payments processed through TableFlow.</div>
+    </div>
+
+    <!-- Transaction log -->
+    <div class="card">
+      <div class="card-title">🧾 Transaction Fee Log</div>
+      <div id="txn-log">
+        <div style="text-align:center;padding:40px;color:var(--text3);">
+          <div style="font-size:36px;margin-bottom:10px;">📊</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text2);">No transactions yet</div>
+          <div style="font-size:13px;margin-top:4px;">Transaction fees will appear here as restaurants process meal payments</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ CHECKOUT MODAL ══════ -->
+<div class="modal-backdrop" id="checkout-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Complete Your Order</div>
+      <div class="modal-sub">Table 7 · Wimpy Sandton</div>
+    </div>
+    <div class="modal-body">
+      <div id="checkout-content">
+
+        <!-- Order summary -->
+        <div class="order-summary">
+          <div class="order-summary-row"><span>Classic Burger × 1</span><span>R89.00</span></div>
+          <div class="order-summary-row"><span>French Fries × 2</span><span>R78.00</span></div>
+          <div class="order-summary-row"><span>Coca-Cola × 1</span><span>R35.00</span></div>
+          <div class="order-summary-row"><span>Tip (15%)</span><span>R30.30</span></div>
+          <div class="order-summary-row total"><span>Total</span><span>R232.30</span></div>
+          <div class="order-summary-row platform-fee"><span>Incl. 0.5% TableFlow platform fee (R1.16) — paid by restaurant</span></div>
+        </div>
+
+        <!-- Payment method selection -->
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px;">How would you like to pay?</div>
+        <div class="pay-method-grid">
+          <div class="pay-method-card active" id="pm-card" onclick="selPayMethod('card')">
+            <div class="pmc-icon">💳</div>
+            <div class="pmc-name">Credit/Debit Card</div>
+            <div class="pmc-sub">Visa, Mastercard</div>
+          </div>
+          <div class="pay-method-card" id="pm-eft" onclick="selPayMethod('eft')">
+            <div class="pmc-icon">🏦</div>
+            <div class="pmc-name">Instant EFT</div>
+            <div class="pmc-sub">All SA banks</div>
+          </div>
+          <div class="pay-method-card" id="pm-snapscan" onclick="selPayMethod('snapscan')">
+            <div class="pmc-icon">📱</div>
+            <div class="pmc-name">SnapScan</div>
+            <div class="pmc-sub">Scan & pay</div>
+          </div>
+          <div class="pay-method-card" id="pm-payfast" onclick="selPayMethod('payfast')">
+            <div class="pmc-icon">⚡</div>
+            <div class="pmc-name">PayFast</div>
+            <div class="pmc-sub">All methods</div>
+          </div>
+        </div>
+
+        <!-- Card form -->
+        <div class="card-form show" id="card-form">
+          <div style="margin-bottom:12px;">
+            <div class="form-label" style="margin-bottom:6px;">Card number</div>
+            <div class="card-input-wrap">
+              <input class="form-input" placeholder="4242 4242 4242 4242" maxlength="19" id="card-number" oninput="fmtCard(this)" style="width:100%;padding-right:44px;">
+              <span class="card-icon">💳</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <div class="form-label" style="margin-bottom:6px;">Expiry</div>
+              <input class="form-input" placeholder="MM/YY" maxlength="5" id="card-expiry" oninput="fmtExpiry(this)" style="width:100%;">
+            </div>
+            <div>
+              <div class="form-label" style="margin-bottom:6px;">CVV</div>
+              <input class="form-input" placeholder="123" maxlength="3" type="password" style="width:100%;">
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="form-label" style="margin-bottom:6px;">Name on card</div>
+            <input class="form-input" placeholder="As it appears on your card" style="width:100%;">
+          </div>
+        </div>
+
+        <!-- EFT info -->
+        <div id="eft-form" style="display:none;padding:14px;background:var(--surface2);border-radius:10px;font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7;">
+          🏦 You'll be redirected to your bank's secure portal to complete the instant EFT payment. The order will be confirmed automatically once payment clears.
+        </div>
+
+        <!-- SnapScan -->
+        <div id="snapscan-form" style="display:none;text-align:center;padding:14px;margin-bottom:12px;">
+          <div style="font-size:40px;margin-bottom:8px;">📱</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Open SnapScan and scan the QR code at your table</div>
+          <div style="font-size:12px;color:var(--text3);">Your order will be confirmed automatically once SnapScan payment is received</div>
+        </div>
+
+        <!-- PayFast redirect -->
+        <div id="payfast-form" style="display:none;padding:14px;background:var(--surface2);border-radius:10px;font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7;">
+          ⚡ You'll be securely redirected to PayFast to complete your payment using any supported method (card, EFT, SnapScan, Mobicred).
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button class="btn btn-ghost" style="flex:1;" onclick="closeCheckout()">Cancel</button>
+          <button class="btn btn-primary" style="flex:2;" id="pay-now-btn" onclick="processCheckout()">
+            Pay R232.30 Securely →
+          </button>
+        </div>
+
+        <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3);">
+          🔒 Secured by PayFast · SSL encrypted · PCI DSS compliant
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://ujiezcaxgalbkrzdzrlo.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqaWV6Y2F4Z2FsYmtyemR6cmxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjgyNTQsImV4cCI6MjA5MDY0NDI1NH0.q6jBqd58vnl18KiMMazPhmd9A8OAN-FB8bUXsSiGxTI';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ══════════════════════════════════
+//  PAYMENT CONFIG
+//  Replace with real credentials
+//  once PayFast Connect approves
+// ══════════════════════════════════
+const PAYMENT_CONFIG = {
+  // YOUR TableFlow PayFast Connect credentials
+  // (Coetzee Data AI Consultants account)
+  platform: {
+    merchantId:  'YOUR_PAYFAST_MERCHANT_ID',   // ← paste here when approved
+    merchantKey: 'YOUR_PAYFAST_MERCHANT_KEY',  // ← paste here when approved
+    passphrase:  'YOUR_PAYFAST_PASSPHRASE',    // ← paste here when approved
+    platformFee: 0.005,  // 0.5%
+    env: 'sandbox',      // change to 'live' when approved
+    sandboxUrl: 'https://sandbox.payfast.co.za/eng/process',
+    liveUrl:    'https://www.payfast.co.za/eng/process',
+  },
+  // Restaurant-specific gateway (set per restaurant during onboarding)
+  restaurant: {
+    gateway: 'payfast', // payfast | yoco | ozow
+    merchantId:  'RESTAURANT_PAYFAST_MERCHANT_ID',
+    merchantKey: 'RESTAURANT_PAYFAST_MERCHANT_KEY',
+  }
+};
+
+// ══════════════════════════════════
+//  NAV
+// ══════════════════════════════════
+function showView(v, tab){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  if(tab) tab.classList.add('active');
+  if(v==='earnings') loadEarnings();
+}
+
+// ══════════════════════════════════
+//  CHECKOUT MODAL
+// ══════════════════════════════════
+function openCheckout(){
+  document.getElementById('checkout-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeCheckout(){
+  document.getElementById('checkout-modal').classList.remove('open');
+  document.body.style.overflow='';
+  // Reset
+  document.getElementById('checkout-content').innerHTML = document.getElementById('checkout-content').innerHTML;
+}
+
+function selPayMethod(method){
+  document.querySelectorAll('.pay-method-card').forEach(c=>c.classList.remove('active'));
+  document.getElementById('pm-'+method).classList.add('active');
+  // Show/hide forms
+  ['card-form','eft-form','snapscan-form','payfast-form'].forEach(f=>{
+    document.getElementById(f).style.display='none';
+  });
+  const map = {card:'card-form',eft:'eft-form',snapscan:'snapscan-form',payfast:'payfast-form'};
+  if(map[method]) document.getElementById(map[method]).style.display = method==='card'?'block':map[method]==='card-form'?'block':'block';
+
+  const btn = document.getElementById('pay-now-btn');
+  const labels = {
+    card: 'Pay R232.30 Securely →',
+    eft: 'Continue to Bank →',
+    snapscan: 'I\'ve Paid via SnapScan ✓',
+    payfast: 'Continue to PayFast →',
+  };
+  btn.textContent = labels[method]||'Pay R232.30 →';
+}
+
+// ══════════════════════════════════
+//  PROCESS PAYMENT
+//  This is where PayFast Connect
+//  split payment happens
+// ══════════════════════════════════
+async function processCheckout(){
+  const btn = document.getElementById('pay-now-btn');
+  btn.disabled=true;
+  btn.textContent='Processing…';
+
+  // Order details
+  const order = {
+    id: generateOrderId(),
+    amount: 232.30,
+    tip: 30.30,
+    subtotal: 202.00,
+    tableNum: 7,
+    restaurant: 'Wimpy Sandton',
+    items: ['Classic Burger ×1','French Fries ×2','Coca-Cola ×1'],
+  };
+
+  // Calculate split
+  const platformFee = Math.round(order.amount * PAYMENT_CONFIG.platform.platformFee * 100) / 100;
+  const restaurantAmount = Math.round((order.amount - platformFee) * 100) / 100;
+
+  try {
+    // 1. Record payment intent in Supabase
+    await recordPaymentIntent(order, platformFee, restaurantAmount);
+
+    // 2. Build PayFast payment data
+    const pfData = buildPayFastPayload(order, platformFee, restaurantAmount);
+
+    // 3. In sandbox: simulate success after 2s
+    //    In production: redirect to PayFast
+    if(PAYMENT_CONFIG.platform.env === 'sandbox'){
+      await simulateSandboxPayment(order, platformFee, restaurantAmount);
+    } else {
+      // LIVE MODE: submit form to PayFast
+      submitToPayFast(pfData);
+    }
+
+  } catch(e){
+    btn.disabled=false;
+    btn.textContent='Pay R232.30 Securely →';
+    notify('Payment error: '+e.message,'');
+  }
+}
+
+function buildPayFastPayload(order, platformFee, restaurantAmount){
+  const isLive = PAYMENT_CONFIG.platform.env === 'live';
+  return {
+    // Your platform merchant details (Coetzee Data AI Consultants)
+    merchant_id:  PAYMENT_CONFIG.platform.merchantId,
+    merchant_key: PAYMENT_CONFIG.platform.merchantKey,
+
+    // Where money goes
+    return_url: `${window.location.origin}/app/?payment=success&order=${order.id}`,
+    cancel_url: `${window.location.origin}/app/?payment=cancelled`,
+    notify_url: `${SUPABASE_URL}/functions/v1/payfast-webhook`, // Supabase Edge Function
+
+    // Order details
+    m_payment_id:  order.id,
+    amount:        order.amount.toFixed(2),
+    item_name:     `TableFlow Order - ${order.restaurant} Table ${order.tableNum}`,
+    item_description: order.items.join(', '),
+
+    // ── SPLIT PAYMENT (PayFast Connect) ──
+    // Restaurant receives their share
+    split_payment: JSON.stringify({
+      merchant_id: PAYMENT_CONFIG.restaurant.merchantId,
+      amount: restaurantAmount.toFixed(2),
+    }),
+
+    // Custom fields for our webhook
+    custom_int1: order.tableNum,
+    custom_str1: order.restaurant,
+    custom_str2: `platform_fee:${platformFee}`,
+    custom_str3: `restaurant_amount:${restaurantAmount}`,
+    custom_str4: `tip:${order.tip}`,
+  };
+}
+
+async function simulateSandboxPayment(order, platformFee, restaurantAmount){
+  // Simulate PayFast processing delay
+  await sleep(2000);
+
+  // Show success screen
+  document.getElementById('checkout-content').innerHTML = `
+    <div class="success-wrap">
+      <div class="success-icon">✅</div>
+      <div class="success-title">Payment Successful!</div>
+      <div class="success-sub">Your order has been sent to the kitchen. Watch the live tracker for updates.</div>
+      <div class="receipt-box">
+        <div class="receipt-row"><span>Order ID</span><span style="font-family:monospace;">#${order.id.slice(-8).toUpperCase()}</span></div>
+        <div class="receipt-row"><span>Restaurant</span><span>${order.restaurant}</span></div>
+        <div class="receipt-row"><span>Subtotal</span><span>R${order.subtotal.toFixed(2)}</span></div>
+        <div class="receipt-row"><span>Tip (15%)</span><span>R${order.tip.toFixed(2)}</span></div>
+        <div class="receipt-row"><span>Platform fee</span><span style="color:var(--text3);">R${platformFee.toFixed(2)} (paid by restaurant)</span></div>
+        <div class="receipt-row"><span>Total Charged</span><span>R${order.amount.toFixed(2)}</span></div>
+        <div class="receipt-row"><span style="color:var(--green);">Restaurant receives</span><span style="color:var(--green);">R${restaurantAmount.toFixed(2)}</span></div>
+        <div class="receipt-row"><span style="color:var(--amber);">TableFlow earns</span><span style="color:var(--amber);">R${platformFee.toFixed(2)}</span></div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button class="btn btn-ghost" onclick="closeCheckout()">Close</button>
+        <button class="btn btn-primary" onclick="closeCheckout()">Back to Menu</button>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:var(--text3);">📧 Receipt sent to your email · 🔒 Payment secured by PayFast</div>
+    </div>`;
+
+  notify('Payment of R232.30 processed! ✓','success');
+
+  // Log transaction fee
+  logTransactionFee(order, platformFee);
+}
+
+function submitToPayFast(data){
+  // In live mode: create a hidden form and submit to PayFast
+  const url = PAYMENT_CONFIG.platform.env==='live'
+    ? PAYMENT_CONFIG.platform.liveUrl
+    : PAYMENT_CONFIG.platform.sandboxUrl;
+
+  const form = document.createElement('form');
+  form.method='POST';
+  form.action=url;
+  Object.entries(data).forEach(([k,v])=>{
+    const input=document.createElement('input');
+    input.type='hidden';input.name=k;input.value=v;
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+}
+
+async function recordPaymentIntent(order, platformFee, restaurantAmount){
+  try {
+    await db.from('payments').insert({
+      restaurant_id: 'a1b2c3d4-0000-0000-0000-000000000001',
+      amount: order.amount,
+      tip_amount: order.tip,
+      method: 'payfast',
+      status: 'pending',
+      reference: order.id,
+    });
+  } catch(e){ console.warn('Payment record error:', e); }
+}
+
+// ══════════════════════════════════
+//  SUBSCRIPTION BILLING
+//  PayFast recurring payment setup
+// ══════════════════════════════════
+function buildSubscriptionPayload(restaurant, plan){
+  const plans = {
+    starter: { amount: 499, name: 'TableFlow Starter' },
+    professional: { amount: 1199, name: 'TableFlow Professional' },
+    group: { amount: 3499, name: 'TableFlow Restaurant Group' },
+  };
+  const p = plans[plan];
+  const today = new Date();
+  const billingDate = today.getDate(); // same day each month
+
+  return {
+    merchant_id:       PAYMENT_CONFIG.platform.merchantId,
+    merchant_key:      PAYMENT_CONFIG.platform.merchantKey,
+    return_url:        `${window.location.origin}/dashboard/?subscription=success`,
+    cancel_url:        `${window.location.origin}/onboarding/?subscription=cancelled`,
+    notify_url:        `${SUPABASE_URL}/functions/v1/payfast-subscription-webhook`,
+
+    m_payment_id:      `sub_${restaurant.id}_${Date.now()}`,
+    amount:            p.amount.toFixed(2),
+    item_name:         p.name,
+    item_description:  `Monthly subscription for ${restaurant.name} — ${restaurant.branch}`,
+
+    // Recurring billing fields
+    subscription_type: 1,         // recurring
+    billing_date:      billingDate,
+    recurring_amount:  p.amount.toFixed(2),
+    frequency:         3,         // monthly
+    cycles:            0,         // indefinite (until cancelled)
+
+    custom_str1: restaurant.id,
+    custom_str2: plan,
+    custom_str3: restaurant.name,
+  };
+}
+
+// ══════════════════════════════════
+//  GATEWAY SETTINGS
+// ══════════════════════════════════
+function selGateway(gw){
+  document.querySelectorAll('.gateway-card').forEach(c=>c.classList.remove('selected'));
+  document.getElementById('gw-'+gw).classList.add('selected');
+  document.querySelectorAll('input[name="gateway"]').forEach(r=>r.checked=false);
+  PAYMENT_CONFIG.restaurant.gateway = gw;
+}
+
+async function savePlatformSettings(){
+  const id   = document.getElementById('pf-platform-id').value.trim();
+  const key  = document.getElementById('pf-platform-key').value.trim();
+  const fee  = parseFloat(document.getElementById('platform-fee').value)||0.5;
+  const env  = document.getElementById('pf-env').value;
+
+  PAYMENT_CONFIG.platform.merchantId  = id;
+  PAYMENT_CONFIG.platform.merchantKey = key;
+  PAYMENT_CONFIG.platform.platformFee = fee/100;
+  PAYMENT_CONFIG.platform.env = env;
+
+  // Save to Supabase
+  try {
+    await db.from('restaurants').update({
+      payfast_merchant_id: id,
+      payfast_merchant_key: key,
+    }).eq('id','a1b2c3d4-0000-0000-0000-000000000001');
+    notify('Platform settings saved ✓','success');
+  } catch(e){
+    notify('Save failed: '+e.message,'');
+  }
+}
+
+async function saveGatewaySettings(){
+  notify('Gateway settings saved ✓ — restaurants will use this gateway for meal payments','success');
+}
+
+// ══════════════════════════════════
+//  EARNINGS
+// ══════════════════════════════════
+let txnLog = [];
+
+async function loadEarnings(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const { data } = await db.from('payments')
+    .select('*')
+    .gte('created_at', today.toISOString())
+    .eq('status','complete');
+
+  const todayTotal = (data||[]).reduce((s,p)=>s+Number(p.amount)*0.005,0);
+  document.getElementById('earn-today').textContent = `R${todayTotal.toFixed(2)}`;
+
+  renderTxnLog();
+  updateSubStats();
+}
+
+function logTransactionFee(order, fee){
+  txnLog.unshift({
+    time: new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'}),
+    restaurant: order.restaurant,
+    orderId: order.id.slice(-8).toUpperCase(),
+    orderAmount: order.amount,
+    fee,
+  });
+  renderTxnLog();
+  const today = parseFloat(document.getElementById('earn-today').textContent.replace('R',''))||0;
+  document.getElementById('earn-today').textContent = `R${(today+fee).toFixed(2)}`;
+  const txn = parseFloat(document.getElementById('earn-txn').textContent.replace('R',''))||0;
+  document.getElementById('earn-txn').textContent = `R${(txn+fee).toFixed(2)}`;
+}
+
+function renderTxnLog(){
+  const el = document.getElementById('txn-log');
+  if(!txnLog.length){
+    el.innerHTML=`<div style="text-align:center;padding:40px;color:var(--text3);"><div style="font-size:36px;margin-bottom:10px;">📊</div><div style="font-size:14px;font-weight:600;color:var(--text2);">No transactions yet</div><div style="font-size:13px;margin-top:4px;">Process a payment in the Checkout Demo tab to see it here</div></div>`;
+    return;
+  }
+  el.innerHTML=`
+    <div style="display:grid;grid-template-columns:80px 1fr 100px 100px 100px;gap:8px;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);">
+      <div>Time</div><div>Restaurant</div><div>Order ID</div><div>Order Total</div><div>Your Fee</div>
+    </div>
+    ${txnLog.map(t=>`
+    <div style="display:grid;grid-template-columns:80px 1fr 100px 100px 100px;gap:8px;padding:12px 14px;font-size:13px;border-bottom:1px solid var(--border);align-items:center;">
+      <div style="color:var(--text3);">${t.time}</div>
+      <div style="font-weight:500;">${t.restaurant}</div>
+      <div style="font-family:monospace;font-size:12px;">#${t.orderId}</div>
+      <div>R${t.orderAmount.toFixed(2)}</div>
+      <div style="font-weight:700;color:var(--amber);">R${t.fee.toFixed(2)}</div>
+    </div>`).join('')}`;
+}
+
+function updateSubStats(){
+  const nextDate = new Date();
+  nextDate.setMonth(nextDate.getMonth()+1);
+  document.getElementById('sub-next-date').textContent = nextDate.toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
+}
+
+// ══════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════
+function generateOrderId(){
+  return 'ord_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+}
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function fmtCard(el){
+  let v = el.value.replace(/\D/g,'').slice(0,16);
+  el.value = v.match(/.{1,4}/g)?.join(' ')||v;
+}
+
+function fmtExpiry(el){
+  let v = el.value.replace(/\D/g,'').slice(0,4);
+  if(v.length>=2) v = v.slice(0,2)+'/'+v.slice(2);
+  el.value=v;
+}
+
+function notify(msg,type=''){
+  const bar=document.getElementById('notif-bar');
+  const el=document.createElement('div');
+  el.className=`notif ${type}`;el.innerHTML=msg;
+  bar.appendChild(el);
+  setTimeout(()=>el.remove(),4500);
+}
+
+// Init
+document.getElementById('checkout-modal').addEventListener('click',function(e){
+  if(e.target===this) closeCheckout();
+});
+updateSubStats();
+</script>
+</body>
+</html>
