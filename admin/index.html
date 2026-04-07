@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TableFlow — SuperAdmin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#090c10;
+  --bg2:#0f1318;
+  --bg3:#161c23;
+  --bg4:#1c242e;
+  --border:#1e2a36;
+  --border2:#253040;
+  --text:#e8edf2;
+  --text2:#7a8fa0;
+  --text3:#3d5060;
+  --accent:#00d4aa;
+  --accent2:#ff6b35;
+  --accent3:#4d9fff;
+  --accent4:#ffb347;
+  --red:#ff4757;
+  --green:#00d4aa;
+  --amber:#ffb347;
+  --blue:#4d9fff;
+  --purple:#a855f7;
+  --radius:10px;
+  --radius-sm:6px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Syne',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr;}
+
+/* ── AUTH GATE ── */
+.auth-gate{
+  position:fixed;inset:0;background:var(--bg);z-index:9999;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:0;
+}
+.auth-gate.hidden{display:none;}
+.gate-logo{font-size:32px;font-weight:800;letter-spacing:-1px;margin-bottom:6px;}
+.gate-logo span{color:var(--accent);}
+.gate-tag{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:40px;}
+.gate-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:36px 40px;width:360px;text-align:center;}
+.gate-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.gate-sub{font-size:13px;color:var(--text3);margin-bottom:28px;}
+.pin-dots{display:flex;gap:12px;justify-content:center;margin-bottom:24px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all 0.2s;}
+.pin-dot.filled{background:var(--accent);border-color:var(--accent);box-shadow:0 0 8px rgba(0,212,170,0.4);}
+.pin-dot.error{background:var(--red);border-color:var(--red);animation:shake 0.4s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.pin-key{padding:16px;border:1px solid var(--border);border-radius:10px;font-size:20px;font-weight:700;cursor:pointer;background:var(--bg3);color:var(--text);transition:all 0.15s;font-family:'Syne',sans-serif;}
+.pin-key:hover{background:var(--bg4);border-color:var(--border2);transform:scale(1.04);}
+.pin-key:active{transform:scale(0.97);}
+.pin-key.del{color:var(--text3);font-size:16px;}
+.pin-key.del:hover{color:var(--red);border-color:var(--red);}
+.gate-error{font-size:12px;color:var(--red);height:16px;transition:opacity 0.2s;}
+.gate-footer{margin-top:32px;font-size:11px;color:var(--text3);line-height:1.6;}
+.gate-footer strong{color:var(--text2);}
+/* Unlock animation */
+.auth-gate.unlocking .gate-card{animation:unlock-scale 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;}
+@keyframes unlock-scale{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(0.95);opacity:0;}}
+
+/* ── SIDEBAR ── */
+.sidebar{grid-row:1/-1;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:100vh;position:sticky;top:0;}
+.sidebar-brand{padding:24px 20px;border-bottom:1px solid var(--border);}
+.brand-logo{font-size:20px;font-weight:800;letter-spacing:-0.5px;color:var(--text);}
+.brand-logo span{color:var(--accent);}
+.brand-tag{font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-top:3px;}
+.sidebar-identity{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.identity-avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--blue));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#000;flex-shrink:0;}
+.identity-name{font-size:12.5px;font-weight:600;color:var(--text);}
+.identity-role{font-size:10px;color:var(--text3);letter-spacing:0.5px;text-transform:uppercase;}
+
+.sidebar-nav{padding:12px 10px;flex:1;}
+.nav-group-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:10px 10px 6px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;text-decoration:none;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:rgba(0,212,170,0.08);color:var(--accent);border:1px solid rgba(0,212,170,0.15);}
+.nav-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--accent2);color:#fff;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;}
+
+.sidebar-status{padding:14px 20px;border-top:1px solid var(--border);}
+.status-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text3);margin-bottom:4px;}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.status-dot.green{background:var(--green);animation:pulse-dot 2s infinite;}
+.status-dot.amber{background:var(--amber);}
+.status-dot.red{background:var(--red);}
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(0,212,170,0.4)}50%{opacity:0.8;box-shadow:0 0 0 4px rgba(0,212,170,0)}}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-title{font-size:18px;font-weight:700;letter-spacing:-0.3px;}
+.topbar-title span{color:var(--accent);}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.topbar-time{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);}
+.live-pill{display:flex;align-items:center;gap:6px;background:rgba(0,212,170,0.08);border:1px solid rgba(0,212,170,0.2);color:var(--accent);padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:0.5px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse-dot 1.5s infinite;}
+.refresh-btn{padding:7px 14px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer;font-family:'Syne',sans-serif;transition:all 0.15s;}
+.refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ── MAIN ── */
+.main{padding:24px 28px;overflow-y:auto;background:var(--bg);}
+
+/* ── SECTIONS ── */
+.section{display:none;}
+.section.active{display:block;}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden;transition:border-color 0.2s;}
+.kpi:hover{border-color:var(--border2);}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.kpi.green::before{background:var(--green);}
+.kpi.blue::before{background:var(--blue);}
+.kpi.amber::before{background:var(--amber);}
+.kpi.purple::before{background:var(--purple);}
+.kpi.red::before{background:var(--red);}
+.kpi-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;}
+.kpi-value{font-size:28px;font-weight:800;letter-spacing:-1px;line-height:1;}
+.kpi-value.green{color:var(--green);}
+.kpi-value.blue{color:var(--blue);}
+.kpi-value.amber{color:var(--amber);}
+.kpi-value.purple{color:var(--purple);}
+.kpi-value.red{color:var(--red);}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:6px;}
+.kpi-trend{position:absolute;top:16px;right:16px;font-size:11px;font-weight:700;}
+.kpi-trend.up{color:var(--green);}
+.kpi-trend.down{color:var(--red);}
+
+/* ── TWO COL ── */
+.two-col{display:grid;grid-template-columns:1fr 360px;gap:16px;margin-bottom:20px;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px;}
+
+/* ── PANEL ── */
+.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.panel-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.panel-title{font-size:13px;font-weight:700;letter-spacing:0.3px;}
+.panel-title span{color:var(--text3);font-weight:400;margin-left:6px;font-size:12px;}
+.panel-action{font-size:11px;color:var(--accent);cursor:pointer;font-weight:600;}
+.panel-action:hover{text-decoration:underline;}
+.panel-body{padding:0;}
+
+/* ── RESTAURANTS TABLE ── */
+.data-table{width:100%;border-collapse:collapse;}
+.data-table th{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);padding:10px 18px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg3);}
+.data-table td{padding:13px 18px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(255,255,255,0.015);}
+.data-table tr{transition:background 0.1s;}
+
+.restaurant-name-cell{display:flex;align-items:center;gap:10px;}
+.restaurant-avatar{width:30px;height:30px;border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.restaurant-name{font-weight:600;font-size:13px;}
+.restaurant-branch{font-size:11px;color:var(--text3);margin-top:1px;}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;}
+.badge-green{background:rgba(0,212,170,0.1);color:var(--green);border:1px solid rgba(0,212,170,0.2);}
+.badge-amber{background:rgba(255,179,71,0.1);color:var(--amber);border:1px solid rgba(255,179,71,0.2);}
+.badge-red{background:rgba(255,71,87,0.1);color:var(--red);border:1px solid rgba(255,71,87,0.2);}
+.badge-blue{background:rgba(77,159,255,0.1);color:var(--blue);border:1px solid rgba(77,159,255,0.2);}
+.badge-gray{background:rgba(255,255,255,0.05);color:var(--text3);border:1px solid var(--border);}
+.badge-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+/* ── MONO VALUES ── */
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px;}
+.value-green{color:var(--green);font-weight:600;}
+.value-amber{color:var(--amber);font-weight:600;}
+.value-blue{color:var(--blue);font-weight:600;}
+.value-red{color:var(--red);}
+.value-muted{color:var(--text3);}
+
+/* ── ACTIVITY FEED ── */
+.feed-item{display:flex;align-items:flex-start;gap:12px;padding:12px 18px;border-bottom:1px solid var(--border);transition:background 0.1s;}
+.feed-item:last-child{border:none;}
+.feed-item:hover{background:rgba(255,255,255,0.015);}
+.feed-item.new{animation:feed-flash 0.6s ease;}
+@keyframes feed-flash{0%{background:rgba(0,212,170,0.08)}100%{background:transparent}}
+.feed-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.feed-dot.order{background:var(--blue);}
+.feed-dot.payment{background:var(--green);}
+.feed-dot.signup{background:var(--purple);}
+.feed-dot.error{background:var(--red);}
+.feed-dot.ready{background:var(--amber);}
+.feed-content{flex:1;}
+.feed-main{font-size:12.5px;font-weight:500;color:var(--text);line-height:1.4;}
+.feed-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.feed-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);white-space:nowrap;}
+.feed-amount{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:var(--green);white-space:nowrap;}
+
+/* ── REVENUE CHART ── */
+.chart-wrap{padding:16px 18px 8px;}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:100px;}
+.chart-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.chart-bar{width:100%;background:var(--accent);border-radius:3px 3px 0 0;transition:height 0.8s cubic-bezier(0.34,1.56,0.64,1);min-height:3px;opacity:0.8;cursor:pointer;}
+.chart-bar:hover{opacity:1;}
+.chart-bar.today{background:var(--accent2);}
+.chart-day{font-size:9px;color:var(--text3);font-weight:500;}
+.chart-val{font-size:9px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+
+/* ── PLATFORM EARNINGS ── */
+.earnings-strip{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);}
+.earning-cell{background:var(--bg2);padding:16px 18px;}
+.earning-label{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;}
+.earning-value{font-size:22px;font-weight:800;letter-spacing:-0.5px;}
+.earning-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+
+/* ── SUBSCRIPTION BARS ── */
+.sub-bar-wrap{padding:14px 18px;display:flex;flex-direction:column;gap:10px;}
+.sub-bar-row{display:flex;align-items:center;gap:10px;}
+.sub-bar-label{font-size:12px;font-weight:600;min-width:100px;}
+.sub-bar-track{flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden;}
+.sub-bar-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+.sub-bar-count{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);min-width:40px;text-align:right;}
+
+/* ── SYSTEM HEALTH ── */
+.health-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);}
+.health-cell{background:var(--bg2);padding:14px 18px;display:flex;align-items:center;gap:12px;}
+.health-icon{font-size:18px;}
+.health-label{font-size:12px;font-weight:600;color:var(--text);}
+.health-value{font-size:11px;color:var(--text3);margin-top:2px;}
+.health-status{margin-left:auto;}
+
+/* ── RESTAURANT DETAIL MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;display:flex;align-items:center;justify-content:flex-end;opacity:0;pointer-events:none;transition:opacity 0.2s;backdrop-filter:blur(4px);}
+.modal-backdrop.open{opacity:1;pointer-events:all;}
+.side-panel{width:480px;height:100vh;background:var(--bg2);border-left:1px solid var(--border);overflow-y:auto;transform:translateX(40px);transition:transform 0.25s;display:flex;flex-direction:column;}
+.modal-backdrop.open .side-panel{transform:translateX(0);}
+.side-panel-header{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1;}
+.side-panel-title{font-size:16px;font-weight:700;}
+.side-panel-close{background:var(--bg3);border:1px solid var(--border);color:var(--text2);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.side-panel-body{padding:20px 24px;flex:1;}
+.detail-section{margin-bottom:20px;}
+.detail-section-title{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+.detail-row:last-child{border:none;}
+.detail-key{font-size:12px;color:var(--text3);}
+.detail-val{font-size:12.5px;font-weight:500;color:var(--text);}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px;}
+.action-btn{padding:10px;border-radius:var(--radius-sm);font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:'Syne',sans-serif;transition:all 0.15s;text-align:center;}
+.action-btn.primary{background:var(--accent);color:#000;}
+.action-btn.primary:hover{background:#00c49a;}
+.action-btn.danger{background:rgba(255,71,87,0.1);color:var(--red);border:1px solid rgba(255,71,87,0.2);}
+.action-btn.danger:hover{background:var(--red);color:#fff;}
+.action-btn.secondary{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.action-btn.secondary:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ── SEARCH ── */
+.search-bar{position:relative;margin-bottom:16px;}
+.search-bar input{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px 14px 10px 36px;border-radius:var(--radius-sm);font-size:13px;font-family:'Syne',sans-serif;outline:none;transition:border 0.15s;}
+.search-bar input:focus{border-color:var(--accent);}
+.search-bar input::placeholder{color:var(--text3);}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:14px;}
+
+/* ── FILTER TABS ── */
+.filter-tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--bg2);padding:4px;border-radius:var(--radius-sm);border:1px solid var(--border);width:fit-content;}
+.filter-tab{padding:6px 14px;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text3);transition:all 0.15s;border:none;background:none;font-family:'Syne',sans-serif;}
+.filter-tab.active{background:var(--bg4);color:var(--text);}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:48px 20px;color:var(--text3);}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:0.5;}
+.empty-title{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+
+/* ── NOTIFICATIONS ── */
+.notif-bar{position:fixed;bottom:20px;right:20px;z-index:400;display:flex;flex-direction:column;gap:6px;pointer-events:none;}
+.notif{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;box-shadow:0 8px 32px rgba(0,0,0,0.4);pointer-events:all;animation:slide-notif 0.3s ease;max-width:300px;}
+.notif.success{border-color:rgba(0,212,170,0.3);color:var(--green);}
+.notif.error{border-color:rgba(255,71,87,0.3);color:var(--red);}
+@keyframes slide-notif{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:translateX(0)}}
+
+@media(max-width:1100px){
+  body{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .kpi-strip{grid-template-columns:repeat(3,1fr);}
+  .two-col{grid-template-columns:1fr;}
+  .three-col{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ AUTH GATE ══ -->
+<div class="auth-gate" id="auth-gate">
+  <div class="gate-logo">Table<span>Flow</span></div>
+  <div class="gate-tag">SuperAdmin Console</div>
+  <div class="gate-card">
+    <div class="gate-title">🔐 Admin Access</div>
+    <div class="gate-sub">Enter your 6-digit admin PIN to continue</div>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div>
+      <div class="pin-dot" id="pd5"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" onclick="pinPress('1')">1</button>
+      <button class="pin-key" onclick="pinPress('2')">2</button>
+      <button class="pin-key" onclick="pinPress('3')">3</button>
+      <button class="pin-key" onclick="pinPress('4')">4</button>
+      <button class="pin-key" onclick="pinPress('5')">5</button>
+      <button class="pin-key" onclick="pinPress('6')">6</button>
+      <button class="pin-key" onclick="pinPress('7')">7</button>
+      <button class="pin-key" onclick="pinPress('8')">8</button>
+      <button class="pin-key" onclick="pinPress('9')">9</button>
+      <button class="pin-key del" onclick="pinClear()">C</button>
+      <button class="pin-key" onclick="pinPress('0')">0</button>
+      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    </div>
+    <div class="gate-error" id="gate-error"></div>
+  </div>
+  <div class="gate-footer">
+    <strong>Coetzee Data AI Consultants Pty (Ltd)</strong><br>
+    Reg. 2025/428324/07 · Restricted access
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">Table<span>Flow</span></div>
+    <div class="brand-tag">SuperAdmin Console</div>
+  </div>
+  <div class="sidebar-identity">
+    <div class="identity-avatar">GC</div>
+    <div>
+      <div class="identity-name">Gerhard Coetzee</div>
+      <div class="identity-role">Platform Owner</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group-label">Monitor</div>
+    <button class="nav-item active" onclick="showSection('overview',this)"><span class="nav-icon">⚡</span>Overview</button>
+    <button class="nav-item" onclick="showSection('restaurants',this)"><span class="nav-icon">🏪</span>All Restaurants<span class="nav-badge" id="nav-rest-count">0</span></button>
+    <button class="nav-item" onclick="showSection('orders',this)"><span class="nav-icon">🧾</span>Live Orders<span class="nav-badge" id="nav-orders-badge" style="display:none;">!</span></button>
+    <button class="nav-item" onclick="showSection('earnings',this)"><span class="nav-icon">💰</span>Platform Earnings</button>
+    <div class="nav-group-label">Manage</div>
+    <button class="nav-item" onclick="showSection('subscriptions',this)"><span class="nav-icon">📦</span>Subscriptions</button>
+    <button class="nav-item" onclick="showSection('owners',this)"><span class="nav-icon">👤</span>Owners</button>
+    <button class="nav-item" onclick="showSection('system',this)"><span class="nav-icon">🔧</span>System Health</button>
+    <div class="nav-group-label">Quick Links</div>
+    <a class="nav-item" href="../app/" target="_blank"><span class="nav-icon">📱</span>Demo App</a>
+    <a class="nav-item" href="../dashboard/" target="_blank"><span class="nav-icon">📊</span>Owner Dashboard</a>
+    <a class="nav-item" href="../onboarding/" target="_blank"><span class="nav-icon">➕</span>Onboarding</a>
+  </nav>
+  <div class="sidebar-status">
+    <div class="status-row"><div class="status-dot green"></div>Supabase — Connected</div>
+    <div class="status-row"><div class="status-dot green" id="realtime-dot"></div>Real-time — Active</div>
+    <div class="status-row"><div class="status-dot amber"></div>PayFast — Sandbox</div>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-title">SuperAdmin <span>Console</span></div>
+  <div class="topbar-right">
+    <div class="topbar-time" id="topbar-clock">--:--:--</div>
+    <div class="live-pill"><div class="live-dot"></div>LIVE</div>
+    <button class="refresh-btn" onclick="loadAll()">↺ Refresh</button>
+  </div>
+</header>
+
+<div class="notif-bar" id="notif-bar"></div>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="section active" id="section-overview">
+
+    <!-- KPIs -->
+    <div class="kpi-strip">
+      <div class="kpi green">
+        <div class="kpi-label">Platform Revenue Today</div>
+        <div class="kpi-value green" id="kpi-revenue">R0</div>
+        <div class="kpi-sub">subscriptions + fees</div>
+        <div class="kpi-trend up" id="kpi-rev-trend">—</div>
+      </div>
+      <div class="kpi blue">
+        <div class="kpi-label">Total Restaurants</div>
+        <div class="kpi-value blue" id="kpi-restaurants">0</div>
+        <div class="kpi-sub" id="kpi-rest-sub">0 active today</div>
+      </div>
+      <div class="kpi amber">
+        <div class="kpi-label">Orders Today</div>
+        <div class="kpi-value amber" id="kpi-orders">0</div>
+        <div class="kpi-sub">across all branches</div>
+      </div>
+      <div class="kpi purple">
+        <div class="kpi-label">MRR (Subscriptions)</div>
+        <div class="kpi-value purple" id="kpi-mrr">R0</div>
+        <div class="kpi-sub">monthly recurring</div>
+      </div>
+      <div class="kpi green">
+        <div class="kpi-label">Platform Fee Earned</div>
+        <div class="kpi-value green" id="kpi-fees">R0.00</div>
+        <div class="kpi-sub">0.5% of all meals</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <!-- Restaurant list -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Restaurants <span id="rest-count-label">— 0 total</span></div>
+          <div class="panel-action" onclick="showSection('restaurants',null)">View all →</div>
+        </div>
+        <div class="panel-body">
+          <table class="data-table" id="overview-rest-table">
+            <thead>
+              <tr>
+                <th>Restaurant</th>
+                <th>Plan</th>
+                <th>Tables</th>
+                <th>Today</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="overview-rest-body">
+              <tr><td colspan="5" class="empty"><div class="empty-icon">🏪</div><div class="empty-title">Loading…</div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Live feed -->
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Live Activity</div>
+          <div style="font-size:11px;color:var(--text3);">auto-updating</div>
+        </div>
+        <div class="panel-body" id="activity-feed" style="max-height:380px;overflow-y:auto;">
+          <div class="empty"><div class="empty-icon">📡</div><div class="empty-title">Waiting for activity…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="three-col">
+      <!-- Revenue chart -->
+      <div class="panel" style="grid-column:1/3;">
+        <div class="panel-header">
+          <div class="panel-title">Revenue — Last 7 Days <span id="chart-total-label"></span></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="chart-bars" id="revenue-chart"></div>
+        </div>
+      </div>
+
+      <!-- System health -->
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">System Health</div></div>
+        <div class="health-grid">
+          <div class="health-cell"><div class="health-icon">🗄️</div><div><div class="health-label">Database</div><div class="health-value">Supabase PostgreSQL</div></div><div class="health-status"><span class="badge badge-green"><span class="badge-dot"></span>Online</span></div></div>
+          <div class="health-cell"><div class="health-icon">⚡</div><div><div class="health-label">Real-time</div><div class="health-value">WebSocket active</div></div><div class="health-status"><span class="badge badge-green"><span class="badge-dot"></span>Online</span></div></div>
+          <div class="health-cell"><div class="health-icon">🔗</div><div><div class="health-label">Webhook</div><div class="health-value">quick-endpoint</div></div><div class="health-status"><span class="badge badge-green"><span class="badge-dot"></span>Deployed</span></div></div>
+          <div class="health-cell"><div class="health-icon">💳</div><div><div class="health-label">PayFast</div><div class="health-value">Merchant: 34423933</div></div><div class="health-status"><span class="badge badge-amber"><span class="badge-dot"></span>Sandbox</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform earnings strip -->
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-header"><div class="panel-title">Platform Earnings Breakdown</div></div>
+      <div class="earnings-strip">
+        <div class="earning-cell">
+          <div class="earning-label">Transaction Fees (0.5%)</div>
+          <div class="earning-value value-green" id="earn-txn">R0.00</div>
+          <div class="earning-sub">from meal payments</div>
+        </div>
+        <div class="earning-cell">
+          <div class="earning-label">Subscription Fees</div>
+          <div class="earning-value" id="earn-sub-total">R0.00</div>
+          <div class="earning-sub">monthly SaaS billing</div>
+        </div>
+        <div class="earning-cell">
+          <div class="earning-label">Total Platform Income</div>
+          <div class="earning-value value-green" id="earn-total">R0.00</div>
+          <div class="earning-sub">this month</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ RESTAURANTS ══ -->
+  <div class="section" id="section-restaurants">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-size:18px;font-weight:700;">All Restaurants</div>
+      <a href="../onboarding/" target="_blank" style="padding:8px 16px;background:var(--accent);color:#000;border-radius:var(--radius-sm);font-size:12px;font-weight:700;text-decoration:none;">+ Add Restaurant</a>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search by name, branch, city…" id="rest-search" oninput="filterRestaurants()">
+    </div>
+    <div class="filter-tabs">
+      <button class="filter-tab active" onclick="filterByStatus('all',this)">All</button>
+      <button class="filter-tab" onclick="filterByStatus('active',this)">Active</button>
+      <button class="filter-tab" onclick="filterByStatus('trial',this)">Trial</button>
+      <button class="filter-tab" onclick="filterByStatus('inactive',this)">Inactive</button>
+    </div>
+    <div class="panel">
+      <div class="panel-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Restaurant</th>
+              <th>Owner</th>
+              <th>Plan</th>
+              <th>Tables</th>
+              <th>Currency</th>
+              <th>Revenue Today</th>
+              <th>Orders</th>
+              <th>Joined</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="restaurants-body">
+            <tr><td colspan="10"><div class="empty"><div class="empty-icon">🏪</div><div class="empty-title">Loading restaurants…</div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LIVE ORDERS ══ -->
+  <div class="section" id="section-orders">
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px;">Live Orders — All Restaurants</div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Today's Orders <span id="orders-count-label"></span></div>
+        <div style="display:flex;gap:8px;">
+          <span class="badge badge-blue"><span class="badge-dot"></span>New</span>
+          <span class="badge badge-amber"><span class="badge-dot"></span>Cooking</span>
+          <span class="badge badge-green"><span class="badge-dot"></span>Ready/Served</span>
+        </div>
+      </div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Order ID</th>
+              <th>Restaurant</th>
+              <th>Table</th>
+              <th>Amount</th>
+              <th>Tip</th>
+              <th>Platform Fee</th>
+              <th>Status</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="orders-body">
+            <tr><td colspan="8"><div class="empty"><div class="empty-icon">🧾</div><div class="empty-title">Loading orders…</div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ EARNINGS ══ -->
+  <div class="section" id="section-earnings">
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px;">Platform Earnings</div>
+    <div class="kpi-strip" style="grid-template-columns:repeat(4,1fr);">
+      <div class="kpi green"><div class="kpi-label">Today's Fees</div><div class="kpi-value green" id="earn-today-kpi">R0.00</div><div class="kpi-sub">0.5% of meal payments</div></div>
+      <div class="kpi amber"><div class="kpi-label">This Month Fees</div><div class="kpi-value amber" id="earn-month-kpi">R0.00</div><div class="kpi-sub">transaction fees only</div></div>
+      <div class="kpi purple"><div class="kpi-label">Subscriptions MRR</div><div class="kpi-value purple" id="earn-mrr-kpi">R0</div><div class="kpi-sub">monthly recurring</div></div>
+      <div class="kpi green"><div class="kpi-label">Total This Month</div><div class="kpi-value green" id="earn-total-kpi">R0</div><div class="kpi-sub">fees + subscriptions</div></div>
+    </div>
+
+    <!-- Projection table -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header"><div class="panel-title">Revenue Projection</div></div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>Restaurants</th><th>Avg Meals/Month</th><th>Avg Meal Value</th><th>Subscription Revenue</th><th>Transaction Fees (0.5%)</th><th>Total Monthly</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">5</td><td class="mono value-muted">500</td><td class="mono value-muted">R150</td><td class="mono value-green">R5,995</td><td class="mono value-amber">R1,875</td><td class="mono" style="font-weight:700;">R7,870</td></tr>
+            <tr><td class="mono">20</td><td class="mono value-muted">500</td><td class="mono value-muted">R150</td><td class="mono value-green">R23,980</td><td class="mono value-amber">R7,500</td><td class="mono" style="font-weight:700;">R31,480</td></tr>
+            <tr><td class="mono">50</td><td class="mono value-muted">800</td><td class="mono value-muted">R180</td><td class="mono value-green">R59,950</td><td class="mono value-amber">R36,000</td><td class="mono" style="font-weight:700;">R95,950</td></tr>
+            <tr><td class="mono">100</td><td class="mono value-muted">1,000</td><td class="mono value-muted">R200</td><td class="mono value-green">R119,900</td><td class="mono value-amber">R100,000</td><td class="mono value-green" style="font-weight:800;font-size:15px;">R219,900</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Transaction fee log -->
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">Transaction Fee Log <span id="txn-log-label"></span></div></div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>Time</th><th>Restaurant</th><th>Order Ref</th><th>Gross Amount</th><th>Your Fee (0.5%)</th><th>Status</th></tr></thead>
+          <tbody id="earnings-log-body">
+            <tr><td colspan="6"><div class="empty"><div class="empty-icon">💰</div><div class="empty-title">No earnings recorded yet</div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SUBSCRIPTIONS ══ -->
+  <div class="section" id="section-subscriptions">
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px;">Subscription Management</div>
+
+    <!-- Sub bars by plan -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-header"><div class="panel-title">Subscribers by Plan</div></div>
+      <div class="sub-bar-wrap" id="sub-bars">
+        <div class="sub-bar-row"><div class="sub-bar-label">Starter (R499)</div><div class="sub-bar-track"><div class="sub-bar-fill" style="width:0%;background:var(--blue);"></div></div><div class="sub-bar-count">0</div></div>
+        <div class="sub-bar-row"><div class="sub-bar-label">Professional (R1,199)</div><div class="sub-bar-track"><div class="sub-bar-fill" style="width:30%;background:var(--accent);"></div></div><div class="sub-bar-count" id="pro-count">0</div></div>
+        <div class="sub-bar-row"><div class="sub-bar-label">Group (R3,499)</div><div class="sub-bar-track"><div class="sub-bar-fill" style="width:0%;background:var(--purple);"></div></div><div class="sub-bar-count">0</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><div class="panel-title">All Subscriptions</div></div>
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>Restaurant</th><th>Plan</th><th>Amount</th><th>Status</th><th>Trial Ends</th><th>Next Billing</th><th>Actions</th></tr></thead>
+          <tbody id="subscriptions-body">
+            <tr><td colspan="7"><div class="empty"><div class="empty-icon">📦</div><div class="empty-title">Loading subscriptions…</div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ OWNERS ══ -->
+  <div class="section" id="section-owners">
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px;">Restaurant Owners</div>
+    <div class="panel">
+      <div class="panel-body">
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Plan</th><th>Restaurants</th><th>Joined</th><th>Status</th></tr></thead>
+          <tbody id="owners-body">
+            <tr><td colspan="7"><div class="empty"><div class="empty-icon">👤</div><div class="empty-title">Loading owners…</div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SYSTEM ══ -->
+  <div class="section" id="section-system">
+    <div style="font-size:18px;font-weight:700;margin-bottom:16px;">System Health</div>
+    <div class="three-col">
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Database Tables</div></div>
+        <div class="panel-body" id="db-tables-list">
+          <div class="empty"><div class="empty-title">Loading…</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Edge Functions</div></div>
+        <div class="panel-body">
+          <div class="feed-item"><div class="feed-dot payment"></div><div class="feed-content"><div class="feed-main">quick-endpoint</div><div class="feed-sub">PayFast webhook handler</div></div><span class="badge badge-green">Active</span></div>
+          <div class="feed-item"><div class="feed-dot error"></div><div class="feed-content"><div class="feed-main">hyper-action</div><div class="feed-sub">Default template — unused</div></div><span class="badge badge-gray">Unused</span></div>
+          <div class="feed-item"><div class="feed-dot error"></div><div class="feed-content"><div class="feed-main">quick-handler</div><div class="feed-sub">Default template — unused</div></div><span class="badge badge-gray">Unused</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">Configuration</div></div>
+        <div class="panel-body">
+          <div class="feed-item"><div class="feed-dot payment"></div><div class="feed-content"><div class="feed-main">PayFast Merchant ID</div><div class="feed-sub mono">34423933</div></div><span class="badge badge-green">Set</span></div>
+          <div class="feed-item"><div class="feed-dot payment"></div><div class="feed-content"><div class="feed-main">PayFast Merchant Key</div><div class="feed-sub mono">lsgo3g5i••••••</div></div><span class="badge badge-green">Set</span></div>
+          <div class="feed-item"><div class="feed-dot payment"></div><div class="feed-content"><div class="feed-main">PayFast Passphrase</div><div class="feed-sub mono">••••••••••••••</div></div><span class="badge badge-green">Set</span></div>
+          <div class="feed-item"><div class="feed-dot ready"></div><div class="feed-content"><div class="feed-main">Environment</div><div class="feed-sub">Sandbox — awaiting Connect approval</div></div><span class="badge badge-amber">Sandbox</span></div>
+          <div class="feed-item"><div class="feed-dot payment"></div><div class="feed-content"><div class="feed-main">Platform Fee</div><div class="feed-sub">0.5% per meal transaction</div></div><span class="badge badge-green">Active</span></div>
+          <div class="feed-item"><div class="feed-dot payment"></div><div class="feed-content"><div class="feed-main">Supabase Project</div><div class="feed-sub mono">ujiezcaxgalbkrzdzrlo</div></div><span class="badge badge-green">Connected</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- RESTAURANT DETAIL SIDE PANEL -->
+<div class="modal-backdrop" id="detail-panel">
+  <div class="side-panel">
+    <div class="side-panel-header">
+      <div class="side-panel-title" id="detail-title">Restaurant Details</div>
+      <button class="side-panel-close" onclick="closeDetail()">×</button>
+    </div>
+    <div class="side-panel-body" id="detail-body"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  SUPABASE INIT — must be first
+// ══════════════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://ujiezcaxgalbkrzdzrlo.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqaWV6Y2F4Z2FsYmtyemR6cmxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjgyNTQsImV4cCI6MjA5MDY0NDI1NH0.q6jBqd58vnl18KiMMazPhmd9A8OAN-FB8bUXsSiGxTI';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ══════════════════════════════════════════════════════════════
+//  AUTH GATE
+//  Change ADMIN_PIN to any 6-digit number you want
+//  Session lasts 8 hours — then PIN is required again
+// ══════════════════════════════════════════════════════════════
+const ADMIN_PIN = '342239';  // ← Change this to your own 6-digit PIN
+const SESSION_KEY = 'tf_admin_auth';
+const SESSION_HOURS = 8;
+
+let enteredPin = '';
+
+function checkSession(){
+  const stored = sessionStorage.getItem(SESSION_KEY);
+  if(!stored) return false;
+  const { timestamp } = JSON.parse(stored);
+  const hoursSince = (Date.now() - timestamp) / 3600000;
+  return hoursSince < SESSION_HOURS;
+}
+
+function unlockAdmin(){
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ timestamp: Date.now() }));
+  const gate = document.getElementById('auth-gate');
+  gate.classList.add('unlocking');
+  setTimeout(()=>{
+    gate.classList.add('hidden');
+    // Now init the app
+    loadAll().then(()=>{
+      subscribeRealtime();
+      notify('SuperAdmin loaded — monitoring all restaurants','success');
+    });
+  }, 400);
+}
+
+function pinPress(digit){
+  if(enteredPin.length >= 6) return;
+  enteredPin += digit;
+  updatePinDots();
+  if(enteredPin.length === 6) setTimeout(checkPin, 150);
+}
+
+function pinDel(){
+  enteredPin = enteredPin.slice(0,-1);
+  updatePinDots();
+  clearError();
+}
+
+function pinClear(){
+  enteredPin = '';
+  updatePinDots();
+  clearError();
+}
+
+function updatePinDots(){
+  for(let i=0;i<6;i++){
+    const dot = document.getElementById('pd'+i);
+    dot.classList.remove('filled','error');
+    if(i < enteredPin.length) dot.classList.add('filled');
+  }
+}
+
+function checkPin(){
+  if(enteredPin === ADMIN_PIN){
+    // Flash green
+    for(let i=0;i<6;i++) document.getElementById('pd'+i).classList.add('filled');
+    unlockAdmin();
+  } else {
+    // Flash error
+    for(let i=0;i<6;i++){
+      const dot = document.getElementById('pd'+i);
+      dot.classList.remove('filled');
+      dot.classList.add('error');
+    }
+    document.getElementById('gate-error').textContent = 'Incorrect PIN. Try again.';
+    setTimeout(()=>{
+      enteredPin='';
+      updatePinDots();
+      for(let i=0;i<6;i++) document.getElementById('pd'+i).classList.remove('error');
+    }, 600);
+  }
+}
+
+function clearError(){
+  document.getElementById('gate-error').textContent='';
+}
+
+// Keyboard support
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('auth-gate').classList.contains('hidden')) return;
+  if(e.key>='0'&&e.key<='9') pinPress(e.key);
+  else if(e.key==='Backspace') pinDel();
+  else if(e.key==='Escape') pinClear();
+});
+
+// ── CHECK SESSION ON LOAD ──
+if(checkSession()){
+  document.getElementById('auth-gate').classList.add('hidden');
+  // Init app after DOM is ready
+  window.addEventListener('load', ()=>{
+    loadAll().then(()=>{
+      subscribeRealtime();
+      notify('SuperAdmin loaded — monitoring all restaurants','success');
+    });
+  });
+}
+// (If no session, gate stays visible — init happens after PIN entry)
+
+// ── STATE ──
+let allRestaurants = [];
+let allOrders = [];
+let allOwners = [];
+let allSubscriptions = [];
+let allEarnings = [];
+let activityLog = [];
+let restFilter = 'all';
+let restSearch = '';
+
+// ── CLOCK ──
+setInterval(()=>{
+  document.getElementById('topbar-clock').textContent =
+    new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+},1000);
+
+// ── NAV ──
+function showSection(name, btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('section-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+// ── LOAD ALL ──
+async function loadAll(){
+  await Promise.all([
+    loadRestaurants(),
+    loadOrders(),
+    loadOwners(),
+    loadSubscriptions(),
+    loadEarnings(),
+  ]);
+  renderOverview();
+  renderRestaurantsTable();
+  renderOrdersTable();
+  renderEarnings();
+  renderSubscriptions();
+  renderOwners();
+  renderChart();
+  renderDbTables();
+}
+
+async function loadRestaurants(){
+  const { data } = await db.from('restaurants').select('*').order('created_at',{ascending:false});
+  allRestaurants = data || [];
+  document.getElementById('nav-rest-count').textContent = allRestaurants.length;
+}
+
+async function loadOrders(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const { data } = await db.from('orders')
+    .select('*, order_items(*)')
+    .gte('created_at', today.toISOString())
+    .order('created_at',{ascending:false});
+  allOrders = data || [];
+  if(allOrders.length>0){
+    document.getElementById('nav-orders-badge').style.display='inline';
+    document.getElementById('nav-orders-badge').textContent = allOrders.length;
+  }
+}
+
+async function loadOwners(){
+  const { data } = await db.from('owners').select('*').order('created_at',{ascending:false});
+  allOwners = data || [];
+}
+
+async function loadSubscriptions(){
+  const { data } = await db.from('subscriptions').select('*, restaurants(name,branch)').order('created_at',{ascending:false});
+  allSubscriptions = data || [];
+}
+
+async function loadEarnings(){
+  const { data } = await db.from('platform_earnings').select('*, restaurants(name,branch)').order('created_at',{ascending:false}).limit(100);
+  allEarnings = data || [];
+}
+
+// ── RENDER OVERVIEW ──
+function renderOverview(){
+  const totalRevenue = allOrders.reduce((s,o)=>s+Number(o.total),0);
+  const totalFees = allOrders.reduce((s,o)=>s+Number(o.total)*0.005,0);
+  const mrr = allSubscriptions.filter(s=>s.status==='active'||s.status==='trial')
+    .reduce((s,sub)=>s+Number(sub.amount),0);
+  const active = allRestaurants.filter(r=>allOrders.some(o=>o.restaurant_id===r.id)).length;
+
+  document.getElementById('kpi-revenue').textContent = `R${Math.round(totalRevenue+mrr).toLocaleString()}`;
+  document.getElementById('kpi-restaurants').textContent = allRestaurants.length;
+  document.getElementById('kpi-rest-sub').textContent = `${active} active today`;
+  document.getElementById('kpi-orders').textContent = allOrders.length;
+  document.getElementById('kpi-mrr').textContent = `R${mrr.toLocaleString()}`;
+  document.getElementById('kpi-fees').textContent = `R${totalFees.toFixed(2)}`;
+  document.getElementById('rest-count-label').textContent = `— ${allRestaurants.length} total`;
+  document.getElementById('earn-txn').textContent = `R${totalFees.toFixed(2)}`;
+  document.getElementById('earn-sub-total').textContent = `R${mrr.toLocaleString()}`;
+  document.getElementById('earn-total').textContent = `R${(totalFees+mrr).toLocaleString()}`;
+
+  // Overview restaurant table
+  const tbody = document.getElementById('overview-rest-body');
+  if(!allRestaurants.length){
+    tbody.innerHTML=`<tr><td colspan="5"><div class="empty"><div class="empty-icon">🏪</div><div class="empty-title">No restaurants yet</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = allRestaurants.slice(0,8).map(r=>{
+    const rOrders = allOrders.filter(o=>o.restaurant_id===r.id);
+    const rev = rOrders.reduce((s,o)=>s+Number(o.total),0);
+    const hasOrders = rOrders.length>0;
+    return `<tr onclick="openDetail('${r.id}')" style="cursor:pointer;">
+      <td><div class="restaurant-name-cell">
+        <div class="restaurant-avatar">🏪</div>
+        <div><div class="restaurant-name">${r.name}</div><div class="restaurant-branch">${r.branch}${r.city?', '+r.city:''}</div></div>
+      </div></td>
+      <td><span class="badge ${r.plan==='group'?'badge-purple':r.plan==='professional'?'badge-blue':'badge-gray'}">${r.plan||'starter'}</span></td>
+      <td class="mono value-muted">${r.num_tables||12}</td>
+      <td class="mono ${rev>0?'value-green':'value-muted'}">${r.currency||'R'}${Math.round(rev).toLocaleString()}</td>
+      <td><span class="badge ${hasOrders?'badge-green':'badge-gray'}"><span class="badge-dot"></span>${hasOrders?'Active':'Quiet'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── RENDER RESTAURANTS TABLE ──
+function filterRestaurants(){ renderRestaurantsTable(); }
+function filterByStatus(status, btn){
+  restFilter=status;
+  document.querySelectorAll('.filter-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderRestaurantsTable();
+}
+
+function renderRestaurantsTable(){
+  const search = document.getElementById('rest-search')?.value.toLowerCase()||'';
+  let rests = [...allRestaurants];
+  if(search) rests=rests.filter(r=>`${r.name} ${r.branch} ${r.city}`.toLowerCase().includes(search));
+
+  const tbody = document.getElementById('restaurants-body');
+  if(!rests.length){
+    tbody.innerHTML=`<tr><td colspan="10"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No restaurants found</div></div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rests.map(r=>{
+    const owner = allOwners.find(o=>o.id===r.owner_id);
+    const rOrders = allOrders.filter(o=>o.restaurant_id===r.id);
+    const rev = rOrders.reduce((s,o)=>s+Number(o.total),0);
+    const sub = allSubscriptions.find(s=>s.restaurant_id===r.id);
+    const joined = new Date(r.created_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
+    const hasOrders = rOrders.length>0;
+
+    return `<tr onclick="openDetail('${r.id}')" style="cursor:pointer;">
+      <td><div class="restaurant-name-cell">
+        <div class="restaurant-avatar">🏪</div>
+        <div><div class="restaurant-name">${r.name}</div><div class="restaurant-branch">${r.branch}${r.city?', '+r.city:''}</div></div>
+      </div></td>
+      <td class="value-muted" style="font-size:12px;">${owner?.full_name||'—'}</td>
+      <td><span class="badge ${r.plan==='group'?'badge-blue':r.plan==='professional'?'badge-blue':'badge-gray'}">${r.plan||'starter'}</span></td>
+      <td class="mono value-muted">${r.num_tables||12}</td>
+      <td class="mono value-muted">${r.currency||'R'}</td>
+      <td class="mono ${rev>0?'value-green':'value-muted'}">${r.currency||'R'}${Math.round(rev).toLocaleString()}</td>
+      <td class="mono value-muted">${rOrders.length}</td>
+      <td class="value-muted" style="font-size:11px;">${joined}</td>
+      <td><span class="badge ${hasOrders?'badge-green':r.is_onboarded?'badge-gray':'badge-amber'}">
+        <span class="badge-dot"></span>${hasOrders?'Active':r.is_onboarded?'Onboarded':'Setup'}</span></td>
+      <td><button onclick="event.stopPropagation();openDetail('${r.id}')" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:4px;font-size:11px;cursor:pointer;font-family:'Syne',sans-serif;">Details</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── RESTAURANT DETAIL ──
+function openDetail(id){
+  const r = allRestaurants.find(r=>r.id===id);
+  if(!r) return;
+  const owner = allOwners.find(o=>o.id===r.owner_id);
+  const rOrders = allOrders.filter(o=>o.restaurant_id===r.id);
+  const rev = rOrders.reduce((s,o)=>s+Number(o.total),0);
+  const tips = rOrders.reduce((s,o)=>s+Number(o.tip_amount),0);
+  const sub = allSubscriptions.find(s=>s.restaurant_id===r.id);
+
+  document.getElementById('detail-title').textContent = `${r.name} — ${r.branch}`;
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-section">
+      <div class="detail-section-title">Restaurant Info</div>
+      <div class="detail-row"><span class="detail-key">Name</span><span class="detail-val">${r.name}</span></div>
+      <div class="detail-row"><span class="detail-key">Branch</span><span class="detail-val">${r.branch}</span></div>
+      <div class="detail-row"><span class="detail-key">City</span><span class="detail-val">${r.city||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Country</span><span class="detail-val">${r.country||'South Africa'}</span></div>
+      <div class="detail-row"><span class="detail-key">Tables</span><span class="detail-val">${r.num_tables||12}</span></div>
+      <div class="detail-row"><span class="detail-key">Currency</span><span class="detail-val">${r.currency||'R'}</span></div>
+      <div class="detail-row"><span class="detail-key">Prep time</span><span class="detail-val">${r.prep_time||15} min</span></div>
+      <div class="detail-row"><span class="detail-key">Cook time</span><span class="detail-val">${r.cook_time||12} min</span></div>
+      <div class="detail-row"><span class="detail-key">Restaurant ID</span><span class="detail-val mono" style="font-size:10px;">${r.id}</span></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Owner</div>
+      <div class="detail-row"><span class="detail-key">Name</span><span class="detail-val">${owner?.full_name||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">${owner?.email||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Company</span><span class="detail-val">${owner?.company_name||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Plan</span><span class="detail-val">${owner?.plan||'—'}</span></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Today's Performance</div>
+      <div class="detail-row"><span class="detail-key">Orders</span><span class="detail-val value-blue">${rOrders.length}</span></div>
+      <div class="detail-row"><span class="detail-key">Revenue</span><span class="detail-val value-green">${r.currency||'R'}${rev.toFixed(2)}</span></div>
+      <div class="detail-row"><span class="detail-key">Tips collected</span><span class="detail-val">${r.currency||'R'}${tips.toFixed(2)}</span></div>
+      <div class="detail-row"><span class="detail-key">Your platform fee</span><span class="detail-val value-amber">R${(rev*0.005).toFixed(2)}</span></div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-title">Subscription</div>
+      <div class="detail-row"><span class="detail-key">Plan</span><span class="detail-val">${sub?.plan||r.plan||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val">${sub?.status||'—'}</span></div>
+      <div class="detail-row"><span class="detail-key">Amount</span><span class="detail-val value-green">R${Number(sub?.amount||0).toLocaleString()}/mo</span></div>
+      <div class="detail-row"><span class="detail-key">PayFast ID</span><span class="detail-val mono" style="font-size:11px;">${r.payfast_merchant_id||'Not set'}</span></div>
+    </div>
+
+    <div class="action-grid">
+      <button class="action-btn primary" onclick="window.open('../app/','_blank')">Open App</button>
+      <button class="action-btn secondary" onclick="window.open('../qr/','_blank')">QR Codes</button>
+      <button class="action-btn secondary" onclick="notify('Email sent to '+('${owner?.email||'owner'}'),'success')">Email Owner</button>
+      <button class="action-btn danger" onclick="if(confirm('Suspend this restaurant?'))notify('Suspended (demo only)','error')">Suspend</button>
+    </div>`;
+
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); }
+
+// ── ORDERS TABLE ──
+function renderOrdersTable(){
+  document.getElementById('orders-count-label').textContent = `— ${allOrders.length} orders`;
+  const tbody = document.getElementById('orders-body');
+  if(!allOrders.length){
+    tbody.innerHTML=`<tr><td colspan="8"><div class="empty"><div class="empty-icon">🧾</div><div class="empty-title">No orders today yet</div></div></td></tr>`;
+    return;
+  }
+  const statusBadge = (s)=>{
+    const map={new:'badge-blue',cooking:'badge-amber',ready:'badge-green',served:'badge-green'};
+    return `<span class="badge ${map[s]||'badge-gray'}"><span class="badge-dot"></span>${s}</span>`;
+  };
+  tbody.innerHTML = allOrders.map(o=>{
+    const r = allRestaurants.find(r=>r.id===o.restaurant_id);
+    const shortId = o.id.slice(-8).toUpperCase();
+    const fee = (Number(o.total)*0.005).toFixed(2);
+    const time = new Date(o.created_at).toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit'});
+    return `<tr>
+      <td class="mono" style="font-size:11px;color:var(--text3);">#${shortId}</td>
+      <td><div class="restaurant-name">${r?.name||'Unknown'}</div><div class="restaurant-branch">${r?.branch||''}</div></td>
+      <td class="mono value-muted">${o.table_number}</td>
+      <td class="mono value-green">${r?.currency||'R'}${Number(o.total).toFixed(2)}</td>
+      <td class="mono value-muted">${r?.currency||'R'}${Number(o.tip_amount).toFixed(2)}</td>
+      <td class="mono value-amber">R${fee}</td>
+      <td>${statusBadge(o.status)}</td>
+      <td class="mono value-muted" style="font-size:11px;">${time}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EARNINGS ──
+function renderEarnings(){
+  const fees = allOrders.reduce((s,o)=>s+Number(o.total)*0.005,0);
+  const mrr = allSubscriptions.filter(s=>s.status==='active'||s.status==='trial').reduce((s,sub)=>s+Number(sub.amount),0);
+  document.getElementById('earn-today-kpi').textContent = `R${fees.toFixed(2)}`;
+  document.getElementById('earn-month-kpi').textContent = `R${fees.toFixed(2)}`;
+  document.getElementById('earn-mrr-kpi').textContent = `R${mrr.toLocaleString()}`;
+  document.getElementById('earn-total-kpi').textContent = `R${(fees+mrr).toLocaleString()}`;
+
+  const tbody = document.getElementById('earnings-log-body');
+  if(!allEarnings.length){
+    tbody.innerHTML=`<tr><td colspan="6"><div class="empty"><div class="empty-icon">💰</div><div class="empty-title">No earnings recorded yet — earnings appear here after real payments</div></div></td></tr>`;
+    return;
+  }
+  document.getElementById('txn-log-label').textContent = `— ${allEarnings.length} records`;
+  tbody.innerHTML = allEarnings.map(e=>{
+    const time = new Date(e.created_at).toLocaleString('en-ZA',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<tr>
+      <td class="mono value-muted" style="font-size:11px;">${time}</td>
+      <td>${e.restaurants?.name||'Unknown'} — ${e.restaurants?.branch||''}</td>
+      <td class="mono" style="font-size:11px;color:var(--text3);">#${e.payment_reference?.slice(-8).toUpperCase()||'—'}</td>
+      <td class="mono value-muted">R${Number(e.gross_amount).toFixed(2)}</td>
+      <td class="mono value-green">R${Number(e.platform_fee).toFixed(4)}</td>
+      <td><span class="badge ${e.settled?'badge-green':'badge-amber'}"><span class="badge-dot"></span>${e.settled?'Settled':'Pending'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── SUBSCRIPTIONS ──
+function renderSubscriptions(){
+  const tbody = document.getElementById('subscriptions-body');
+  if(!allSubscriptions.length){
+    tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">📦</div><div class="empty-title">No subscriptions yet</div></div></td></tr>`;
+    return;
+  }
+  const proCount = allSubscriptions.filter(s=>s.plan==='professional').length;
+  document.getElementById('pro-count').textContent = proCount;
+
+  tbody.innerHTML = allSubscriptions.map(s=>{
+    const trialEnd = s.trial_ends_at ? new Date(s.trial_ends_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short'}) : '—';
+    const nextBill = s.current_period_end ? new Date(s.current_period_end).toLocaleDateString('en-ZA',{day:'numeric',month:'short'}) : '—';
+    const statusBadge = {active:'badge-green',trial:'badge-blue',overdue:'badge-red',cancelled:'badge-gray'}[s.status]||'badge-gray';
+    return `<tr>
+      <td><div class="restaurant-name">${s.restaurants?.name||'Unknown'}</div><div class="restaurant-branch">${s.restaurants?.branch||''}</div></td>
+      <td><span class="badge ${s.plan==='group'?'badge-blue':s.plan==='professional'?'badge-blue':'badge-gray'}">${s.plan}</span></td>
+      <td class="mono value-green">R${Number(s.amount).toLocaleString()}/mo</td>
+      <td><span class="badge ${statusBadge}"><span class="badge-dot"></span>${s.status}</span></td>
+      <td class="mono value-muted">${trialEnd}</td>
+      <td class="mono value-muted">${nextBill}</td>
+      <td><button onclick="notify('Billing management coming soon','');" style="padding:5px 10px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:4px;font-size:11px;cursor:pointer;font-family:'Syne',sans-serif;">Manage</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── OWNERS ──
+function renderOwners(){
+  const tbody = document.getElementById('owners-body');
+  if(!allOwners.length){
+    tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><div class="empty-icon">👤</div><div class="empty-title">No owners yet</div></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = allOwners.map(o=>{
+    const restCount = allRestaurants.filter(r=>r.owner_id===o.id).length;
+    const joined = new Date(o.created_at).toLocaleDateString('en-ZA',{day:'numeric',month:'short',year:'numeric'});
+    return `<tr>
+      <td><div class="restaurant-name-cell">
+        <div class="identity-avatar" style="width:30px;height:30px;font-size:11px;">${o.full_name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+        <div class="restaurant-name">${o.full_name}</div>
+      </div></td>
+      <td class="value-muted" style="font-size:12px;">${o.email}</td>
+      <td class="value-muted" style="font-size:12px;">${o.company_name||'—'}</td>
+      <td><span class="badge ${o.plan==='group'?'badge-blue':'badge-gray'}">${o.plan||'starter'}</span></td>
+      <td class="mono value-blue">${restCount}</td>
+      <td class="value-muted" style="font-size:11px;">${joined}</td>
+      <td><span class="badge ${o.active?'badge-green':'badge-red'}"><span class="badge-dot"></span>${o.active?'Active':'Inactive'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ── CHART ──
+function renderChart(){
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayIdx = (new Date().getDay()+6)%7;
+  const todayRev = allOrders.reduce((s,o)=>s+Number(o.total),0);
+  const base = todayRev||1500;
+  const vals = days.map((_,i)=>i===todayIdx?todayRev:Math.round(base*(0.5+Math.random()*1.1)));
+  const max = Math.max(...vals,1);
+  const total = vals.reduce((s,v)=>s+v,0);
+  document.getElementById('chart-total-label').textContent = `— 7-day total R${total.toLocaleString()}`;
+  document.getElementById('revenue-chart').innerHTML = vals.map((v,i)=>`
+    <div class="chart-bar-col">
+      <div class="chart-val">R${v>=1000?(v/1000).toFixed(1)+'k':v}</div>
+      <div class="chart-bar ${i===todayIdx?'today':''}" style="height:${Math.max(4,Math.round(v/max*90))}px;" title="${days[i]}: R${v}"></div>
+      <div class="chart-day">${days[i]}</div>
+    </div>`).join('');
+}
+
+// ── DB TABLES ──
+function renderDbTables(){
+  const tables = ['restaurants','restaurant_tables','menu_items','orders','order_items','owners','staff','payments','gateway_configs','subscriptions','platform_earnings','daily_summaries'];
+  document.getElementById('db-tables-list').innerHTML = tables.map(t=>`
+    <div class="feed-item">
+      <div class="feed-dot payment"></div>
+      <div class="feed-content"><div class="feed-main mono">${t}</div></div>
+      <span class="badge badge-green">Active</span>
+    </div>`).join('');
+}
+
+// ── ACTIVITY FEED ──
+function pushActivity(dot, main, sub, amount, type=''){
+  const feed = document.getElementById('activity-feed');
+  const empty = feed.querySelector('.empty');
+  if(empty) empty.remove();
+  const now = new Date().toLocaleTimeString('en-ZA',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const div = document.createElement('div');
+  div.className='feed-item new';
+  div.innerHTML=`
+    <div class="feed-dot ${dot}"></div>
+    <div class="feed-content"><div class="feed-main">${main}</div><div class="feed-sub">${sub}</div></div>
+    <div style="text-align:right;">
+      ${amount?`<div class="feed-amount">${amount}</div>`:''}
+      <div class="feed-time">${now}</div>
+    </div>`;
+  feed.insertBefore(div, feed.firstChild);
+  if(feed.children.length>30) feed.lastChild.remove();
+}
+
+// ── REAL-TIME ──
+function subscribeRealtime(){
+  db.channel('admin-monitor')
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'orders'},payload=>{
+      const o = payload.new;
+      const r = allRestaurants.find(r=>r.id===o.restaurant_id);
+      allOrders.unshift(o);
+      renderOverview();
+      renderOrdersTable();
+      pushActivity('order',`New order — Table ${o.table_number}`,`${r?.name||'Restaurant'} — ${r?.branch||''}`,`R${Number(o.total).toFixed(2)}`);
+      document.getElementById('nav-orders-badge').style.display='inline';
+      document.getElementById('nav-orders-badge').textContent = allOrders.length;
+    })
+    .on('postgres_changes',{event:'UPDATE',schema:'public',table:'orders'},payload=>{
+      const o = payload.new;
+      const r = allRestaurants.find(r=>r.id===o.restaurant_id);
+      const idx = allOrders.findIndex(x=>x.id===o.id);
+      if(idx>=0) allOrders[idx]=o;
+      if(o.status==='ready') pushActivity('ready',`Table ${o.table_number} order ready`,`${r?.name||''} — ${r?.branch||''}`,``);
+      if(o.status==='served'){
+        pushActivity('payment',`Table ${o.table_number} served & paid`,`${r?.name||''} — Platform fee: R${(Number(o.total)*0.005).toFixed(2)}`,`R${Number(o.total).toFixed(2)}`);
+        renderEarnings();
+      }
+      renderOrdersTable();
+    })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'restaurants'},payload=>{
+      allRestaurants.unshift(payload.new);
+      pushActivity('signup',`New restaurant signed up`,`${payload.new.name} — ${payload.new.branch}`,'');
+      renderOverview();
+      renderRestaurantsTable();
+    })
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'platform_earnings'},payload=>{
+      allEarnings.unshift(payload.new);
+      pushActivity('payment',`Platform fee earned`,`R${Number(payload.new.platform_fee).toFixed(2)} from transaction`,`R${Number(payload.new.platform_fee).toFixed(2)}`);
+      renderEarnings();
+    })
+    .subscribe(status=>{
+      if(status==='SUBSCRIBED'){
+        document.getElementById('realtime-dot').classList.add('green');
+        pushActivity('payment','SuperAdmin connected','Real-time monitoring active','');
+      }
+    });
+}
+
+// ── NOTIFICATIONS ──
+function notify(msg,type=''){
+  const bar=document.getElementById('notif-bar');
+  const el=document.createElement('div');
+  el.className=`notif ${type}`;el.textContent=msg;
+  bar.appendChild(el);
+  setTimeout(()=>el.remove(),4000);
+}
+
+// ── CLOSE ON BACKDROP ──
+document.getElementById('detail-panel').addEventListener('click',function(e){
+  if(e.target===this) closeDetail();
+});
+
+// ── INIT handled by auth gate above ──
+setInterval(loadAll, 300000); // refresh every 5 min
+</script>
+</body>
+</html>

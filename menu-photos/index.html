@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TableFlow — Menu Photos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --brand:#1a1a2e;--brand2:#e8572a;--brand2h:#d44820;
+  --surface:#fff;--surface2:#f7f6f3;
+  --text:#1a1a2e;--text2:#6b6860;--text3:#9e9b96;
+  --border:#e2dfd8;--green:#2d9b5a;--green-bg:#edf7f2;
+  --red:#d63f3f;--amber:#d97b1e;
+  --radius:14px;--radius-sm:8px;
+  --shadow:0 2px 12px rgba(26,26,46,0.08);
+  --shadow-lg:0 8px 40px rgba(26,26,46,0.14);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--text);min-height:100vh;}
+
+/* NAV */
+.app-nav{background:var(--brand);display:flex;align-items:center;padding:0 0 0 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,0.3);}
+.logo{font-family:'DM Serif Display',serif;color:#fff;font-size:22px;margin-right:auto;letter-spacing:-0.5px;}
+.logo span{color:var(--brand2);}
+.nav-links{display:flex;gap:4px;padding:0 16px;}
+.nav-link{padding:8px 16px;color:rgba(255,255,255,0.6);font-size:13px;font-weight:500;text-decoration:none;border-radius:6px;transition:all 0.15s;}
+.nav-link:hover{background:rgba(255,255,255,0.08);color:#fff;}
+.nav-link.active{background:rgba(255,255,255,0.12);color:#fff;}
+
+/* LAYOUT */
+.page-wrap{max-width:1100px;margin:0 auto;padding:32px 24px;}
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:16px;}
+.page-title{font-family:'DM Serif Display',serif;font-size:28px;margin-bottom:4px;}
+.page-sub{font-size:15px;color:var(--text2);}
+
+/* STORAGE SETUP BANNER */
+.setup-banner{background:var(--amber-bg,#fef4e6);border:1.5px solid var(--amber,#d97b1e);border-radius:var(--radius);padding:16px 20px;margin-bottom:24px;display:flex;align-items:flex-start;gap:14px;}
+.setup-banner-icon{font-size:24px;flex-shrink:0;}
+.setup-banner-title{font-size:14px;font-weight:700;color:var(--amber,#d97b1e);margin-bottom:4px;}
+.setup-banner-text{font-size:13px;color:var(--text2);line-height:1.6;}
+.setup-banner code{background:rgba(0,0,0,0.06);padding:2px 6px;border-radius:4px;font-size:12px;font-family:monospace;}
+
+/* FILTERS */
+.filter-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.filter-pill{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;color:var(--text2);}
+.filter-pill.active,.filter-pill:hover{background:var(--brand);color:#fff;border-color:var(--brand);}
+.search-input{padding:8px 14px;border:1.5px solid var(--border);border-radius:20px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;width:220px;transition:border 0.15s;}
+.search-input:focus{border-color:var(--brand);}
+.filter-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.upload-all-btn{padding:9px 20px;background:var(--brand2);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.15s;display:flex;align-items:center;gap:6px;}
+.upload-all-btn:hover{background:var(--brand2h);}
+
+/* MENU ITEMS GRID */
+.items-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;}
+
+/* ITEM CARD */
+.item-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:all 0.2s;}
+.item-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);}
+.item-card.has-photo{border-color:var(--green);}
+
+/* PHOTO AREA */
+.photo-area{position:relative;height:160px;background:var(--surface2);overflow:hidden;cursor:pointer;}
+.photo-area img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.3s;}
+.photo-area:hover img{transform:scale(1.03);}
+.photo-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:8px;transition:all 0.2s;}
+.photo-placeholder-icon{font-size:36px;}
+.photo-placeholder-text{font-size:12px;font-weight:500;}
+.photo-area:hover .photo-placeholder{color:var(--brand2);}
+
+/* UPLOAD OVERLAY */
+.upload-overlay{
+  position:absolute;inset:0;background:rgba(26,26,46,0.7);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  opacity:0;transition:opacity 0.2s;gap:8px;
+}
+.photo-area:hover .upload-overlay{opacity:1;}
+.upload-overlay-text{color:#fff;font-size:13px;font-weight:600;}
+.upload-overlay-sub{color:rgba(255,255,255,0.7);font-size:11px;}
+
+/* DRAG OVER STATE */
+.photo-area.drag-over{background:rgba(232,87,42,0.08);border:2px dashed var(--brand2);}
+
+/* UPLOADING STATE */
+.upload-progress{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,0.3);}
+.upload-progress-fill{height:100%;background:var(--brand2);width:0%;transition:width 0.3s;}
+
+/* PHOTO ACTIONS */
+.photo-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity 0.2s;}
+.photo-area:hover .photo-actions{opacity:1;}
+.photo-action-btn{width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all 0.15s;}
+.photo-action-btn.delete{background:var(--red);color:#fff;}
+.photo-action-btn.delete:hover{background:#b83333;transform:scale(1.1);}
+.photo-action-btn.view{background:rgba(255,255,255,0.9);color:var(--text);}
+.photo-action-btn.view:hover{background:#fff;}
+
+/* ITEM INFO */
+.item-info{padding:14px 16px;}
+.item-name{font-size:14px;font-weight:600;margin-bottom:2px;}
+.item-cat{font-size:11px;color:var(--text3);font-weight:500;text-transform:uppercase;letter-spacing:0.5px;}
+.item-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;}
+.item-price{font-size:15px;font-weight:700;color:var(--brand2);}
+.item-status{font-size:11px;font-weight:600;padding:3px 8px;border-radius:8px;}
+.item-status.has-photo{background:var(--green-bg);color:var(--green);}
+.item-status.no-photo{background:var(--surface2);color:var(--text3);}
+
+/* UPLOAD ZONE (bulk) */
+.bulk-upload-zone{
+  border:2px dashed var(--border);border-radius:var(--radius);padding:40px;
+  text-align:center;margin-bottom:24px;transition:all 0.2s;cursor:pointer;
+  background:var(--surface);
+}
+.bulk-upload-zone:hover,.bulk-upload-zone.drag-over{
+  border-color:var(--brand2);background:rgba(232,87,42,0.03);
+}
+.bulk-upload-icon{font-size:40px;margin-bottom:12px;}
+.bulk-upload-title{font-size:16px;font-weight:600;margin-bottom:6px;}
+.bulk-upload-sub{font-size:13px;color:var(--text2);line-height:1.6;}
+.bulk-upload-sub strong{color:var(--brand2);}
+
+/* STATS BAR */
+.stats-bar{display:flex;gap:20px;margin-bottom:20px;padding:14px 20px;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);}
+.stat-item{display:flex;flex-direction:column;gap:2px;}
+.stat-val{font-size:20px;font-weight:700;}
+.stat-val.green{color:var(--green);}
+.stat-label{font-size:11px;color:var(--text3);font-weight:500;}
+
+/* LIGHTBOX */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.lightbox.open{opacity:1;pointer-events:all;}
+.lightbox img{max-width:90vw;max-height:85vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);}
+.lightbox-close{position:absolute;top:20px;right:24px;background:rgba(255,255,255,0.1);border:none;color:#fff;font-size:24px;cursor:pointer;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;}
+.lightbox-close:hover{background:rgba(255,255,255,0.2);}
+.lightbox-caption{position:absolute;bottom:24px;color:rgba(255,255,255,0.7);font-size:14px;}
+
+/* NOTIFICATIONS */
+.notif-bar{position:fixed;bottom:24px;right:24px;z-index:400;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.notif{background:var(--brand);color:#fff;padding:12px 18px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:500;box-shadow:var(--shadow-lg);pointer-events:all;animation:slide-in 0.3s ease;max-width:320px;}
+.notif.success{background:var(--green);}
+.notif.error{background:var(--red);}
+@keyframes slide-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* Hidden file inputs */
+.hidden-input{display:none;}
+</style>
+</head>
+<body>
+
+<nav class="app-nav">
+  <div class="logo">Table<span>Flow</span></div>
+  <div class="nav-links">
+    <a class="nav-link" href="../app/">App</a>
+    <a class="nav-link" href="../dashboard/">Dashboard</a>
+    <a class="nav-link" href="../qr/">QR Codes</a>
+    <a class="nav-link active" href="#">Menu Photos</a>
+  </div>
+</nav>
+
+<div class="notif-bar" id="notif-bar"></div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">×</button>
+  <img id="lightbox-img" src="" alt="">
+  <div class="lightbox-caption" id="lightbox-caption"></div>
+</div>
+
+<!-- HIDDEN FILE INPUTS -->
+<input type="file" class="hidden-input" id="single-upload-input" accept="image/*" onchange="handleSingleUpload(event)">
+<input type="file" class="hidden-input" id="bulk-upload-input" accept="image/*" multiple onchange="handleBulkUpload(event)">
+
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Menu Photos</div>
+      <div class="page-sub">Upload food photos for each menu item. High quality photos increase orders by up to 30%.</div>
+    </div>
+  </div>
+
+  <!-- SETUP BANNER -->
+  <div class="setup-banner" id="setup-banner">
+    <div class="setup-banner-icon">⚠️</div>
+    <div>
+      <div class="setup-banner-title">Supabase Storage Setup Required</div>
+      <div class="setup-banner-text">
+        Before uploading photos, create a storage bucket in Supabase:<br>
+        1. Go to <strong>Supabase → Storage → New Bucket</strong><br>
+        2. Name it: <code>menu-photos</code><br>
+        3. Set to <strong>Public</strong> (so customer menus can display photos)<br>
+        4. Click <strong>Create bucket</strong><br>
+        Then come back here and start uploading. This only needs to be done once.
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-item"><div class="stat-val" id="stat-total">0</div><div class="stat-label">Total items</div></div>
+    <div class="stat-item"><div class="stat-val green" id="stat-with-photo">0</div><div class="stat-label">With photos</div></div>
+    <div class="stat-item"><div class="stat-val" id="stat-without">0</div><div class="stat-label">Still need photos</div></div>
+    <div class="stat-item"><div class="stat-val" id="stat-pct">0%</div><div class="stat-label">Complete</div></div>
+  </div>
+
+  <!-- BULK UPLOAD -->
+  <div class="bulk-upload-zone" id="bulk-drop-zone"
+    onclick="document.getElementById('bulk-upload-input').click()"
+    ondragover="handleDragOver(event,this)"
+    ondragleave="handleDragLeave(this)"
+    ondrop="handleBulkDrop(event,this)">
+    <div class="bulk-upload-icon">📸</div>
+    <div class="bulk-upload-title">Drag & drop multiple photos here</div>
+    <div class="bulk-upload-sub">
+      Or click to browse. Upload multiple photos at once.<br>
+      <strong>Name your files to match menu items</strong> — e.g. <code>classic-burger.jpg</code>, <code>french-fries.png</code><br>
+      Supported: JPG, PNG, WebP · Max 5MB per photo
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filter-bar">
+    <div class="filter-pill active" onclick="filterItems('all',this)">All</div>
+    <div class="filter-pill" onclick="filterItems('no-photo',this)">Needs photo</div>
+    <div class="filter-pill" onclick="filterItems('has-photo',this)">Has photo</div>
+    <div id="cat-filter-pills"></div>
+    <div class="filter-right">
+      <input class="search-input" type="text" placeholder="Search items…" id="search-input" oninput="filterSearch()">
+    </div>
+  </div>
+
+  <!-- ITEMS GRID -->
+  <div class="items-grid" id="items-grid">
+    <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text3);">
+      <div style="font-size:40px;margin-bottom:10px;">🍽️</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:6px;">Loading menu…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL  = 'https://ujiezcaxgalbkrzdzrlo.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqaWV6Y2F4Z2FsYmtyemR6cmxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjgyNTQsImV4cCI6MjA5MDY0NDI1NH0.q6jBqd58vnl18KiMMazPhmd9A8OAN-FB8bUXsSiGxTI';
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const RESTAURANT_ID = 'a1b2c3d4-0000-0000-0000-000000000001';
+const BUCKET = 'menu-photos';
+
+let allItems = [];
+let currentFilter = 'all';
+let currentSearch = '';
+let uploadingItemId = null;
+
+// ── LOAD MENU ──
+async function loadMenu(){
+  try {
+    const { data, error } = await db
+      .from('menu_items')
+      .select('*')
+      .eq('restaurant_id', RESTAURANT_ID)
+      .order('sort_order');
+    if(error) throw error;
+    allItems = data || [];
+    renderStats();
+    renderCatPills();
+    renderItems();
+  } catch(e){
+    notify('Could not load menu: '+e.message,'error');
+  }
+}
+
+// ── STATS ──
+function renderStats(){
+  const total = allItems.length;
+  const withPhoto = allItems.filter(i=>i.photo_url).length;
+  const without = total - withPhoto;
+  const pct = total ? Math.round(withPhoto/total*100) : 0;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-with-photo').textContent = withPhoto;
+  document.getElementById('stat-without').textContent = without;
+  document.getElementById('stat-pct').textContent = pct+'%';
+}
+
+// ── CAT PILLS ──
+function renderCatPills(){
+  const cats = [...new Set(allItems.map(i=>i.category))];
+  const container = document.getElementById('cat-filter-pills');
+  container.innerHTML = cats.map(c=>
+    `<div class="filter-pill" onclick="filterItems('cat:${c}',this)">${c}</div>`
+  ).join('');
+}
+
+// ── RENDER ITEMS ──
+function renderItems(){
+  let items = [...allItems];
+
+  if(currentFilter==='no-photo') items=items.filter(i=>!i.photo_url);
+  else if(currentFilter==='has-photo') items=items.filter(i=>i.photo_url);
+  else if(currentFilter.startsWith('cat:')) items=items.filter(i=>i.category===currentFilter.slice(4));
+
+  if(currentSearch) items=items.filter(i=>i.name.toLowerCase().includes(currentSearch.toLowerCase()));
+
+  const grid = document.getElementById('items-grid');
+  if(!items.length){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text3);"><div style="font-size:36px;margin-bottom:10px;">🔍</div><div style="font-size:15px;font-weight:600;color:var(--text2);">No items found</div></div>`;
+    return;
+  }
+  grid.innerHTML = items.map(item=>itemCard(item)).join('');
+}
+
+function itemCard(item){
+  const hasPhoto = !!item.photo_url;
+  return `<div class="item-card ${hasPhoto?'has-photo':''}" id="card-${item.id}">
+    <div class="photo-area"
+      onclick="triggerUpload('${item.id}')"
+      ondragover="handleDragOver(event,this)"
+      ondragleave="handleDragLeave(this)"
+      ondrop="handleItemDrop(event,'${item.id}',this)">
+      ${hasPhoto
+        ? `<img src="${item.photo_url}" alt="${item.name}" id="img-${item.id}">`
+        : `<div class="photo-placeholder">
+            <div class="photo-placeholder-icon">${item.emoji||'🍽️'}</div>
+            <div class="photo-placeholder-text">Add photo</div>
+          </div>`
+      }
+      <div class="upload-overlay">
+        <div style="font-size:32px;">📸</div>
+        <div class="upload-overlay-text">${hasPhoto?'Replace photo':'Upload photo'}</div>
+        <div class="upload-overlay-sub">Click or drag & drop</div>
+      </div>
+      ${hasPhoto?`
+      <div class="photo-actions">
+        <button class="photo-action-btn view" onclick="event.stopPropagation();openLightbox('${item.photo_url}','${item.name}')">🔍</button>
+        <button class="photo-action-btn delete" onclick="event.stopPropagation();deletePhoto('${item.id}')">🗑️</button>
+      </div>`:''}
+      <div class="upload-progress" id="prog-${item.id}" style="display:none;">
+        <div class="upload-progress-fill" id="progfill-${item.id}"></div>
+      </div>
+    </div>
+    <div class="item-info">
+      <div class="item-name">${item.name}</div>
+      <div class="item-cat">${item.category}</div>
+      <div class="item-meta">
+        <div class="item-price">R${Number(item.price).toFixed(2)}</div>
+        <div class="item-status ${hasPhoto?'has-photo':'no-photo'}">${hasPhoto?'✓ Has photo':'No photo'}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── TRIGGER UPLOAD ──
+function triggerUpload(itemId){
+  uploadingItemId = itemId;
+  document.getElementById('single-upload-input').value='';
+  document.getElementById('single-upload-input').click();
+}
+
+async function handleSingleUpload(event){
+  const file = event.target.files[0];
+  if(!file || !uploadingItemId) return;
+  await uploadPhoto(uploadingItemId, file);
+  uploadingItemId = null;
+}
+
+// ── BULK UPLOAD ──
+async function handleBulkUpload(event){
+  const files = Array.from(event.target.files);
+  if(!files.length) return;
+  await processBulkFiles(files);
+}
+
+async function handleBulkDrop(event, zone){
+  event.preventDefault();
+  handleDragLeave(zone);
+  const files = Array.from(event.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
+  if(!files.length){ notify('Please drop image files only',''); return; }
+  await processBulkFiles(files);
+}
+
+async function processBulkFiles(files){
+  notify(`Processing ${files.length} photo${files.length>1?'s':''}…`,'');
+  let matched = 0;
+  let unmatched = [];
+
+  for(const file of files){
+    // Try to match filename to menu item name
+    const basename = file.name.replace(/\.[^/.]+$/,'').toLowerCase().replace(/[-_]/g,' ');
+    const match = allItems.find(item=>
+      item.name.toLowerCase()===basename ||
+      item.name.toLowerCase().replace(/\s+/g,'-')===file.name.replace(/\.[^/.]+$/,'').toLowerCase() ||
+      basename.includes(item.name.toLowerCase().slice(0,6))
+    );
+
+    if(match){
+      await uploadPhoto(match.id, file);
+      matched++;
+    } else {
+      unmatched.push(file.name);
+    }
+  }
+
+  if(matched>0) notify(`✓ ${matched} photo${matched>1?'s':''} uploaded successfully!`,'success');
+  if(unmatched.length>0){
+    notify(`${unmatched.length} file${unmatched.length>1?'s':''} couldn't be matched to menu items: ${unmatched.slice(0,3).join(', ')}${unmatched.length>3?'…':''}. Try renaming to match item names.`,'');
+  }
+}
+
+// ── UPLOAD PHOTO ──
+async function uploadPhoto(itemId, file){
+  // Validate
+  if(!file.type.startsWith('image/')){
+    notify('Please upload an image file','error'); return;
+  }
+  if(file.size > 5*1024*1024){
+    notify(`${file.name} is too large. Max 5MB.`,'error'); return;
+  }
+
+  // Show progress
+  const progEl = document.getElementById('prog-'+itemId);
+  const progFill = document.getElementById('progfill-'+itemId);
+  if(progEl){ progEl.style.display='block'; }
+
+  try {
+    // Compress image before upload
+    const compressed = await compressImage(file, 800, 0.82);
+
+    // Upload to Supabase Storage
+    const ext = file.name.split('.').pop().toLowerCase();
+    const path = `${RESTAURANT_ID}/${itemId}.${ext}`;
+
+    // Animate progress
+    let prog = 0;
+    const progInterval = setInterval(()=>{
+      prog = Math.min(prog+8, 85);
+      if(progFill) progFill.style.width = prog+'%';
+    }, 100);
+
+    const { error: uploadError } = await db.storage
+      .from(BUCKET)
+      .upload(path, compressed, {
+        upsert: true,
+        contentType: compressed.type,
+      });
+
+    clearInterval(progInterval);
+
+    if(uploadError){
+      if(uploadError.message.includes('Bucket not found')){
+        notify('Storage bucket not found. Please create a "menu-photos" bucket in Supabase Storage first.','error');
+        if(progEl) progEl.style.display='none';
+        return;
+      }
+      throw uploadError;
+    }
+
+    if(progFill) progFill.style.width='100%';
+
+    // Get public URL
+    const { data: urlData } = db.storage.from(BUCKET).getPublicUrl(path);
+    const photoUrl = urlData.publicUrl + '?t='+Date.now(); // cache bust
+
+    // Update menu_items record
+    const { error: updateError } = await db.from('menu_items')
+      .update({ photo_url: photoUrl })
+      .eq('id', itemId);
+
+    if(updateError) throw updateError;
+
+    // Update local state
+    const item = allItems.find(i=>i.id===itemId);
+    if(item) item.photo_url = photoUrl;
+
+    // Update card in DOM
+    const imgEl = document.getElementById('img-'+itemId);
+    if(imgEl){
+      imgEl.src = photoUrl;
+    } else {
+      // Re-render just this card
+      const card = document.getElementById('card-'+itemId);
+      if(card){
+        const newCard = document.createElement('div');
+        newCard.innerHTML = itemCard(item);
+        card.replaceWith(newCard.firstElementChild);
+      }
+    }
+
+    renderStats();
+    notify(`Photo uploaded for ${item?.name||'item'} ✓`,'success');
+
+  } catch(e){
+    notify('Upload failed: '+e.message,'error');
+    console.error('Upload error:', e);
+  } finally {
+    if(progEl) progEl.style.display='none';
+    if(progFill) progFill.style.width='0%';
+  }
+}
+
+// ── DELETE PHOTO ──
+async function deletePhoto(itemId){
+  if(!confirm('Remove this photo from the menu?')) return;
+
+  const item = allItems.find(i=>i.id===itemId);
+  if(!item) return;
+
+  try {
+    // Remove from storage
+    const ext = item.photo_url?.split('.').pop()?.split('?')[0] || 'jpg';
+    await db.storage.from(BUCKET).remove([`${RESTAURANT_ID}/${itemId}.${ext}`]);
+
+    // Clear from database
+    await db.from('menu_items').update({ photo_url: null }).eq('id', itemId);
+
+    item.photo_url = null;
+    renderItems();
+    renderStats();
+    notify(`Photo removed from ${item.name}`,'');
+  } catch(e){
+    notify('Delete failed: '+e.message,'error');
+  }
+}
+
+// ── IMAGE COMPRESSION ──
+function compressImage(file, maxWidth, quality){
+  return new Promise((resolve)=>{
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const canvas = document.createElement('canvas');
+        let w = img.width;
+        let h = img.height;
+        if(w>maxWidth){ h=Math.round(h*maxWidth/w); w=maxWidth; }
+        canvas.width=w; canvas.height=h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        canvas.toBlob(resolve,'image/jpeg',quality);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── LIGHTBOX ──
+function openLightbox(url, name){
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox-caption').textContent = name;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+// ── DRAG EVENTS ──
+function handleDragOver(event, el){
+  event.preventDefault();
+  el.classList.add('drag-over');
+}
+function handleDragLeave(el){ el.classList.remove('drag-over'); }
+
+async function handleItemDrop(event, itemId, el){
+  event.preventDefault();
+  handleDragLeave(el);
+  const file = event.dataTransfer.files[0];
+  if(!file || !file.type.startsWith('image/')){ notify('Please drop an image file',''); return; }
+  await uploadPhoto(itemId, file);
+}
+
+// ── FILTERS ──
+function filterItems(filter, el){
+  currentFilter = filter;
+  document.querySelectorAll('.filter-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderItems();
+}
+function filterSearch(){
+  currentSearch = document.getElementById('search-input').value;
+  renderItems();
+}
+
+// ── NOTIFICATIONS ──
+function notify(msg, type=''){
+  const bar=document.getElementById('notif-bar');
+  const el=document.createElement('div');
+  el.className=`notif ${type}`;el.textContent=msg;
+  bar.appendChild(el);
+  setTimeout(()=>el.remove(),5000);
+}
+
+// ── INIT ──
+// Check if storage bucket exists
+async function checkStorage(){
+  try {
+    const { data, error } = await db.storage.from(BUCKET).list('',{limit:1});
+    if(!error){
+      document.getElementById('setup-banner').style.display='none';
+    }
+  } catch(e){ /* bucket doesn't exist — keep banner */ }
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape') closeLightbox();
+});
+
+checkStorage();
+loadMenu();
+</script>
+</body>
+</html>
