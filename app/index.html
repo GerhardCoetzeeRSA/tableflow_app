@@ -22,6 +22,44 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--text);min-height:100vh;}
 
+/* ── ACCESS CONTROL ── */
+.access-locked-screen{position:fixed;inset:0;z-index:9000;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:'DM Sans',sans-serif;}
+.access-locked-screen.hidden{display:none;}
+.locked-icon{font-size:72px;margin-bottom:24px;animation:locked-pulse 2s ease-in-out infinite;}
+@keyframes locked-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+.locked-logo{font-family:'DM Serif Display',serif;font-size:28px;color:#fff;margin-bottom:8px;}
+.locked-logo span{color:#e8572a;}
+.locked-title{font-size:22px;font-weight:600;color:#fff;margin-bottom:10px;}
+.locked-sub{font-size:15px;color:rgba(255,255,255,0.55);line-height:1.7;max-width:460px;margin-bottom:32px;}
+.locked-card{background:#161c23;border:1px solid #1e2a36;border-radius:16px;padding:28px 32px;max-width:480px;width:100%;margin-bottom:24px;}
+.locked-card-title{font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:16px;}
+.locked-detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;}
+.locked-detail-row:last-child{border:none;}
+.locked-detail-key{color:rgba(255,255,255,0.45);}
+.locked-detail-val{color:#fff;font-weight:600;}
+.locked-detail-val.red{color:#ff4757;}
+.locked-actions{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.locked-btn{padding:13px 28px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.2s;border:none;text-decoration:none;display:inline-flex;align-items:center;gap:8px;}
+.locked-btn.primary{background:#e8572a;color:#fff;}
+.locked-btn.primary:hover{background:#d44820;}
+.locked-btn.ghost{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.12);}
+
+.grace-banner{position:fixed;top:0;left:0;right:0;z-index:8000;background:linear-gradient(90deg,#d97b1e,#e8572a);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:'DM Sans',sans-serif;box-shadow:0 2px 20px rgba(217,123,30,0.4);animation:slide-banner 0.4s ease;}
+.grace-banner.hidden{display:none;}
+@keyframes slide-banner{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+.grace-banner-text{font-size:13.5px;font-weight:600;color:#fff;display:flex;align-items:center;gap:10px;}
+.grace-days-badge{background:rgba(0,0,0,0.2);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;}
+.grace-banner-actions{display:flex;gap:8px;}
+.grace-btn{padding:7px 16px;border-radius:6px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;border:none;}
+.grace-btn.primary{background:#fff;color:#d97b1e;}
+.grace-btn.dismiss{background:rgba(255,255,255,0.15);color:#fff;}
+
+.trial-banner{position:fixed;top:0;left:0;right:0;z-index:8000;background:linear-gradient(90deg,#2559c2,#4d9fff);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:'DM Sans',sans-serif;animation:slide-banner 0.4s ease;}
+.trial-banner.hidden{display:none;}
+.trial-banner-text{font-size:13px;font-weight:500;color:#fff;display:flex;align-items:center;gap:8px;}
+.trial-days-badge{background:rgba(0,0,0,0.2);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;color:#fff;}
+.trial-upgrade-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;background:#fff;color:#2559c2;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
 /* NAV */
 .app-nav{background:var(--brand);display:flex;align-items:center;padding:0 0 0 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,0.3);}
 .logo{font-family:'DM Serif Display',serif;color:#fff;font-size:22px;margin-right:32px;letter-spacing:-0.5px;}
@@ -291,6 +329,36 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
 </div>
 
 <!-- NAV -->
+<!-- ACCESS CONTROL ELEMENTS -->
+<div class="access-locked-screen hidden" id="access-locked-screen">
+  <div class="locked-icon">🔒</div>
+  <div class="locked-logo">Table<span>Flow</span></div>
+  <div class="locked-title">Account Suspended</div>
+  <div class="locked-sub">Your TableFlow subscription has lapsed. Customers cannot place orders until payment is received.</div>
+  <div class="locked-card">
+    <div class="locked-card-title">Account Details</div>
+    <div class="locked-detail-row"><span class="locked-detail-key">Restaurant</span><span class="locked-detail-val" id="locked-restaurant-name">—</span></div>
+    <div class="locked-detail-row"><span class="locked-detail-key">Plan</span><span class="locked-detail-val" id="locked-plan">—</span></div>
+    <div class="locked-detail-row"><span class="locked-detail-key">Amount due</span><span class="locked-detail-val red" id="locked-amount">—</span></div>
+    <div class="locked-detail-row"><span class="locked-detail-key">Support</span><span class="locked-detail-val">info@coetzeedataconsultants.co.za</span></div>
+  </div>
+  <div class="locked-actions">
+    <a href="mailto:info@coetzeedataconsultants.co.za?subject=TableFlow Subscription Payment" class="locked-btn primary">📧 Contact Us to Pay</a>
+    <a href="tel:0826462405" class="locked-btn ghost">📞 082 646 2405</a>
+  </div>
+</div>
+<div class="grace-banner hidden" id="grace-banner">
+  <div class="grace-banner-text">⚠️ Subscription payment overdue — <span class="grace-days-badge" id="grace-days-left">7 days left</span> before account locks.</div>
+  <div class="grace-banner-actions">
+    <button class="grace-btn primary" onclick="window.location.href='mailto:info@coetzeedataconsultants.co.za?subject=TableFlow Payment'">Pay Now</button>
+    <button class="grace-btn dismiss" onclick="dismissGraceBanner()">Dismiss</button>
+  </div>
+</div>
+<div class="trial-banner hidden" id="trial-banner">
+  <div class="trial-banner-text">🎉 Free trial active — <span class="trial-days-badge" id="trial-days-left">30 days left</span></div>
+  <button class="trial-upgrade-btn" onclick="window.location.href='../onboarding/'">Upgrade Now</button>
+</div>
+
 <nav class="app-nav">
   <div class="logo">Table<span>Flow</span></div>
   <div class="nav-tabs">
@@ -353,6 +421,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
           <div class="total-row grand"><span>Total</span><span id="tot-grand">R0.00</span></div>
         </div>
         <button class="pay-btn" id="pay-btn" onclick="openPayModal()" disabled>Pay Now</button>
+        <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
+          <a href="../legal/" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;display:inline-flex;align-items:center;gap:10px;">
+            <a href="../legal/#terms" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;">Terms</a>
+            <span style="color:var(--border);">·</span>
+            <a href="../legal/#privacy" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;">Privacy</a>
+            <span style="color:var(--border);">·</span>
+            <a href="../legal/#refunds" target="_blank" style="font-size:11px;color:var(--text3);text-decoration:none;">Refunds</a>
+          </a>
+          <div style="font-size:10px;color:var(--border);margin-top:5px;">Powered by TableFlow · Coetzee Data AI Consultants</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1272,11 +1350,88 @@ function notify(msg, type=''){
   setTimeout(()=>el.remove(), 4500);
 }
 
-// ══════════════════════════════════════════════════════════════
-//  INIT
-// ══════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+//  ACCESS CONTROL
+// ══════════════════════════════════════════════════════════
+const PLAN_PRICES = { starter:499, professional:1199, group:3499 };
+
+async function checkAccess(restaurantId){
+  try {
+    const { data: rest } = await db.from('restaurants').select('*, subscriptions(*)').eq('id', restaurantId).single();
+    if(!rest) return 'active';
+    const sub = rest.subscriptions?.[0] || null;
+    const now = new Date();
+    let state = 'active', daysLeft = null;
+
+    if(!sub){ state='trial'; daysLeft=30; }
+    else if(sub.status==='trial'){
+      daysLeft = Math.ceil((new Date(sub.trial_ends_at)-now)/86400000);
+      state = daysLeft<=0 ? 'grace' : 'trial';
+      if(daysLeft<=0) daysLeft=7;
+    } else if(sub.status==='active'){ state='active'; }
+    else if(sub.status==='overdue'){
+      const graceEnd = rest.grace_period_end ? new Date(rest.grace_period_end) : null;
+      if(!graceEnd){ state='grace'; daysLeft=7; }
+      else { daysLeft=Math.ceil((graceEnd-now)/86400000); state=daysLeft>0?'grace':'locked'; }
+    } else if(sub.status==='cancelled'||rest.access_status==='suspended'||rest.access_status==='locked'){
+      state='locked';
+    }
+
+    applyAccessState(state, daysLeft, rest, sub);
+    return state;
+  } catch(e){ console.warn('Access check failed, failing open:', e); return 'active'; }
+}
+
+function applyAccessState(state, daysLeft, rest, sub){
+  const lockedScreen = document.getElementById('access-locked-screen');
+  const graceBanner  = document.getElementById('grace-banner');
+  const trialBanner  = document.getElementById('trial-banner');
+  const appNav       = document.querySelector('.app-nav');
+  [lockedScreen,graceBanner,trialBanner].forEach(el=>el?.classList.add('hidden'));
+  if(appNav) appNav.style.marginTop='0';
+
+  if(state==='trial'){
+    trialBanner?.classList.remove('hidden');
+    const el=document.getElementById('trial-days-left');
+    if(el) el.textContent=`${daysLeft} day${daysLeft!==1?'s':''} left`;
+    if(appNav) appNav.style.marginTop='36px';
+  } else if(state==='grace'){
+    graceBanner?.classList.remove('hidden');
+    const el=document.getElementById('grace-days-left');
+    if(el){ el.textContent=`${daysLeft} day${daysLeft!==1?'s':''} left`; if(daysLeft<=2) el.style.color='#ff4757'; }
+    if(daysLeft<=2 && graceBanner) graceBanner.style.background='linear-gradient(90deg,#d63f3f,#ff4757)';
+    if(appNav) appNav.style.marginTop='44px';
+  } else if(state==='locked'||state==='suspended'){
+    lockedScreen?.classList.remove('hidden');
+    const nameEl=document.getElementById('locked-restaurant-name');
+    const planEl=document.getElementById('locked-plan');
+    const amountEl=document.getElementById('locked-amount');
+    if(nameEl) nameEl.textContent=rest?`${rest.name} — ${rest.branch}`:'—';
+    if(planEl) planEl.textContent=sub?.plan||rest?.plan||'Professional';
+    if(amountEl){ const p=PLAN_PRICES[sub?.plan||rest?.plan||'professional']||1199; amountEl.textContent=`R${p.toLocaleString()}/month`; }
+    // Disable pay button
+    const payBtn=document.getElementById('pay-btn');
+    if(payBtn){ payBtn.disabled=true; payBtn.textContent='🔒 Account Locked'; }
+  }
+}
+
+function dismissGraceBanner(){
+  document.getElementById('grace-banner')?.classList.add('hidden');
+  const appNav=document.querySelector('.app-nav');
+  if(appNav) appNav.style.marginTop='0';
+}
+
+// ══════════════════════════════════════════════════════════
 async function init(){
   setConn('connecting');
+
+  // ── ACCESS CONTROL — check subscription before loading app ──
+  document.getElementById('loading-msg').textContent = 'Checking access…';
+  const accessState = await checkAccess(S.restaurantId);
+  if(accessState === 'locked' || accessState === 'suspended'){
+    setTimeout(()=>document.getElementById('loading-screen').classList.add('hidden'), 600);
+    return; // stop — locked screen is already visible
+  }
 
   document.getElementById('loading-msg').textContent = 'Loading restaurant…';
   await loadRestaurant();
