@@ -385,29 +385,50 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
 @keyframes slide-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 
 @media(max-width:900px){
-  /* ── CUSTOMER TAB ── */
-  .customer-wrap{grid-template-columns:1fr;}
-  .cart-side{
-    position:fixed;bottom:0;left:0;right:0;
-    height:auto;max-height:60vh;
-    z-index:50;border-top:1.5px solid var(--border);
-    border-left:none;border-radius:20px 20px 0 0;
-    box-shadow:0 -4px 24px rgba(0,0,0,0.12);
-    overflow-y:auto;
-  }
-  .cart-header{padding:14px 16px 10px;}
-  .cart-footer{padding:14px 16px;}
-  .menu-wrap{padding:14px 12px;}
+  /* ── PREVENT HORIZONTAL OVERFLOW ── */
+  body{overflow-x:hidden;}
+  .customer-wrap{grid-template-columns:1fr;overflow-x:hidden;}
+
+  /* ── MENU GETS BOTTOM PADDING SO PAY BAR DOESN'T COVER IT ── */
+  .menu-wrap{padding:14px 12px 100px;}
   .menu-grid{grid-template-columns:1fr 1fr;gap:10px;}
   .menu-item{padding:12px;}
-  .cat-pills{gap:6px;padding-bottom:2px;}
-  .cat-pill{padding:5px 12px;font-size:12px;}
+  .cat-pills{gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;}
+  .cat-pill{padding:5px 12px;font-size:12px;white-space:nowrap;flex-shrink:0;}
+
+  /* ── CART: HIDE FULL PANEL, SHOW ONLY FOOTER BAR ── */
+  .cart-side{
+    position:fixed;bottom:0;left:0;right:0;
+    height:auto;
+    z-index:200;
+    border-left:none;
+    border-top:1.5px solid var(--border);
+    border-radius:0;
+    box-shadow:0 -4px 24px rgba(0,0,0,0.15);
+    background:var(--surface);
+    display:flex;flex-direction:column;
+    max-height:100vh;
+    overflow:hidden;
+  }
+  /* Hide cart header and body by default on mobile */
+  .cart-header{display:none;}
+  .cart-body{display:none;}
+  /* Show only footer (Pay Now bar) by default */
+  .cart-footer{
+    display:block;
+    padding:12px 16px;
+    border-top:none;
+  }
+  /* When cart is expanded (class added by JS) show everything */
+  .cart-side.expanded .cart-header{display:block;padding:14px 16px 10px;}
+  .cart-side.expanded .cart-body{display:block;overflow-y:auto;max-height:50vh;}
+  .cart-side.expanded{border-radius:20px 20px 0 0;}
 
   /* ── NAV ── */
   .app-nav{padding:0;}
   .nav-tab{padding:14px 10px;font-size:11px;}
   .nav-right{padding:0 8px;}
-  .restaurant-badge{font-size:11px;padding:5px 10px;}
+  .restaurant-badge{font-size:11px;padding:5px 10px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 
   /* ── KITCHEN ── */
   .kitchen-cols{grid-template-columns:1fr;}
@@ -428,7 +449,6 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
 }
 
 @media(max-width:480px){
-  /* Extra small phones */
   .menu-grid{grid-template-columns:1fr 1fr;gap:8px;}
   .menu-item-name{font-size:12.5px;}
   .menu-item-price{font-size:13px;}
@@ -790,6 +810,23 @@ function handleOzowReturn(){
   }
 }
 // ─────────────────────────────────────────────────────────────────
+// ── MOBILE CART TOGGLE ──────────────────────────────────────────
+function initMobileCart(){
+  if(window.innerWidth > 900) return;
+  const cartSide = document.querySelector('.cart-side');
+  const cartFooter = document.querySelector('.cart-footer');
+  if(!cartSide || !cartFooter) return;
+  cartFooter.addEventListener('click', function(e){
+    if(e.target.closest('.pay-btn')||e.target.closest('.tip-btn')) return;
+    cartSide.classList.toggle('expanded');
+  });
+  let startY = 0;
+  cartSide.addEventListener('touchstart', e=>{ startY = e.touches[0].clientY; });
+  cartSide.addEventListener('touchend', e=>{
+    if(e.changedTouches[0].clientY - startY > 60) cartSide.classList.remove('expanded');
+  });
+}
+// ─────────────────────────────────────────────────────────────────
 let currentRating = 0;
 let ratingOrderId = null;
 const RATING_LABELS = {
@@ -977,13 +1014,16 @@ async function loadMenu(){
       .from('menu_items')
       .select('*')
       .eq('restaurant_id', S.restaurantId)
+      .eq('active', true)
       .order('sort_order');
     if(error) throw error;
     S.menuItems = data || [];
+    console.log(`Menu loaded: ${S.menuItems.length} items`);
     renderMenu();
     renderMenuManage();
   } catch(e) {
-    console.error('Load menu error:', e);
+    console.error('Load menu error:', e?.message || e);
+    S.menuItems = [];
   }
 }
 
@@ -1739,36 +1779,44 @@ function dismissGraceBanner(){
 async function init(){
   setConn('connecting');
 
-  // ── ACCESS CONTROL — check subscription before loading app ──
+  // ── ACCESS CONTROL ──
   document.getElementById('loading-msg').textContent = 'Checking access…';
   const accessState = await checkAccess(S.restaurantId);
   if(accessState === 'locked' || accessState === 'suspended'){
     setTimeout(()=>document.getElementById('loading-screen').classList.add('hidden'), 600);
-    return; // stop — locked screen is already visible
+    return;
   }
 
-  document.getElementById('loading-msg').textContent = 'Loading restaurant…';
-  await loadRestaurant();
+  // ── LOAD ALL DATA IN PARALLEL (much faster) ──
+  document.getElementById('loading-msg').textContent = 'Loading…';
+  try {
+    await Promise.all([
+      loadRestaurant(),
+      loadMenu(),
+      loadTableId(),
+      loadDbTables(),
+      loadTodaysOrders(),
+    ]);
+  } catch(e) {
+    console.error('Init load error:', e);
+  }
 
-  document.getElementById('loading-msg').textContent = 'Loading menu…';
-  await loadMenu();
-
-  document.getElementById('loading-msg').textContent = 'Loading tables…';
-  await loadTableId();
-  await loadDbTables();
-
-  document.getElementById('loading-msg').textContent = 'Loading orders…';
-  await loadTodaysOrders();
+  // ── RETRY MENU IF EMPTY ──
+  if(!S.menuItems || S.menuItems.length === 0){
+    console.warn('Menu empty — retrying...');
+    await new Promise(r=>setTimeout(r, 1000));
+    await loadMenu();
+  }
 
   document.getElementById('loading-msg').textContent = 'Starting real-time…';
   subscribeRealtime();
 
   renderCart();
-  handleOzowReturn(); // Handle return from Ozow payment page
+  handleOzowReturn();
+  initMobileCart();
 
   document.getElementById('pay-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
-  // Refresh kitchen timers every 60s
   setInterval(()=>{
     if(document.getElementById('view-kitchen').classList.contains('active')) renderKitchen();
   }, 60000);
@@ -1776,7 +1824,7 @@ async function init(){
   // Hide loading screen
   setTimeout(()=>{
     document.getElementById('loading-screen').classList.add('hidden');
-  }, 800);
+  }, 500);
 }
 
 init();
