@@ -4,6 +4,54 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TableFlow — Smart Restaurant Ordering</title>
+
+<!-- PWA Meta Tags -->
+<meta name="application-name" content="TableFlow">
+<meta name="description" content="QR-powered restaurant ordering, payment and kitchen management">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TableFlow">
+<meta name="msapplication-TileColor" content="#1a1a2e">
+<meta name="msapplication-tap-highlight" content="no">
+
+<!-- PWA Icons -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144.png">
+<link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128.png">
+
+<!-- Install prompt styles -->
+<style>
+.pwa-install-banner{
+  position:fixed;bottom:80px;left:16px;right:16px;
+  background:var(--brand);border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;padding:14px 16px;
+  display:flex;align-items:center;gap:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);
+  z-index:8500;animation:slide-up 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  max-width:480px;margin:0 auto;
+}
+.pwa-install-banner.hidden{display:none;}
+@keyframes slide-up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.pwa-install-icon{font-size:28px;flex-shrink:0;}
+.pwa-install-text{flex:1;}
+.pwa-install-title{font-size:13.5px;font-weight:600;color:#fff;margin-bottom:2px;}
+.pwa-install-sub{font-size:12px;color:rgba(255,255,255,0.5);}
+.pwa-install-btn{padding:8px 14px;background:var(--brand2);color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+.pwa-install-btn:hover{background:#d44820;}
+.pwa-install-close{background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;}
+.pwa-install-close:hover{color:#fff;}
+</style>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -22,7 +70,33 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--text);min-height:100vh;}
 
-/* ── ACCESS CONTROL ── */
+/* ── RATING MODAL ── */
+.rating-backdrop{position:fixed;inset:0;background:rgba(26,26,46,0.6);z-index:7000;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.3s;backdrop-filter:blur(4px);}
+.rating-backdrop.open{opacity:1;pointer-events:all;}
+.rating-sheet{background:var(--surface);border-radius:24px 24px 0 0;width:100%;max-width:520px;padding:28px 24px 36px;transform:translateY(100%);transition:transform 0.35s cubic-bezier(0.34,1.2,0.64,1);}
+.rating-backdrop.open .rating-sheet{transform:translateY(0);}
+.rating-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;}
+.rating-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:4px;text-align:center;}
+.rating-sub{font-size:14px;color:var(--text2);text-align:center;margin-bottom:20px;}
+.rating-restaurant{display:flex;align-items:center;gap:10px;background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:20px;}
+.rating-restaurant-name{font-size:14px;font-weight:600;}
+.rating-restaurant-branch{font-size:12px;color:var(--text3);}
+.stars-wrap{display:flex;justify-content:center;gap:8px;margin-bottom:20px;}
+.star-btn{font-size:36px;cursor:pointer;transition:transform 0.15s;background:none;border:none;padding:4px;line-height:1;filter:grayscale(1);opacity:0.35;}
+.star-btn.active{filter:grayscale(0);opacity:1;transform:scale(1.15);}
+.star-btn:hover{transform:scale(1.2);filter:grayscale(0);opacity:0.8;}
+.rating-label{text-align:center;font-size:14px;font-weight:600;color:var(--brand2);height:20px;margin-bottom:14px;transition:all 0.2s;}
+.rating-comment{width:100%;padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:'DM Sans',sans-serif;resize:none;outline:none;transition:border 0.15s;background:var(--surface2);margin-bottom:16px;}
+.rating-comment:focus{border-color:var(--brand);background:var(--surface);}
+.rating-submit{width:100%;padding:14px;border-radius:var(--radius-sm);background:var(--brand2);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:background 0.2s;display:block;opacity:1;visibility:visible;}
+.rating-submit:hover{background:var(--brand2h);opacity:1;visibility:visible;}
+.rating-submit:disabled{background:var(--border);color:var(--text3);cursor:not-allowed;}
+.rating-skip{width:100%;padding:10px;border:none;background:none;font-size:13px;color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px;}
+.rating-skip:hover{color:var(--text2);}
+.rating-success{text-align:center;padding:20px 0;}
+.rating-success-icon{font-size:52px;margin-bottom:12px;}
+.rating-success-title{font-family:'DM Serif Display',serif;font-size:22px;margin-bottom:6px;}
+.rating-success-sub{font-size:14px;color:var(--text2);}
 .access-locked-screen{position:fixed;inset:0;z-index:9000;background:#0d0d0d;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;font-family:'DM Sans',sans-serif;}
 .access-locked-screen.hidden{display:none;}
 .locked-icon{font-size:72px;margin-bottom:24px;animation:locked-pulse 2s ease-in-out infinite;}
@@ -311,11 +385,59 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
 @keyframes slide-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
 
 @media(max-width:900px){
+  /* ── CUSTOMER TAB ── */
   .customer-wrap{grid-template-columns:1fr;}
-  .cart-side{position:fixed;bottom:0;left:0;right:0;height:auto;max-height:55vh;z-index:50;border-top:1.5px solid var(--border);border-left:none;}
+  .cart-side{
+    position:fixed;bottom:0;left:0;right:0;
+    height:auto;max-height:60vh;
+    z-index:50;border-top:1.5px solid var(--border);
+    border-left:none;border-radius:20px 20px 0 0;
+    box-shadow:0 -4px 24px rgba(0,0,0,0.12);
+    overflow-y:auto;
+  }
+  .cart-header{padding:14px 16px 10px;}
+  .cart-footer{padding:14px 16px;}
+  .menu-wrap{padding:14px 12px;}
+  .menu-grid{grid-template-columns:1fr 1fr;gap:10px;}
+  .menu-item{padding:12px;}
+  .cat-pills{gap:6px;padding-bottom:2px;}
+  .cat-pill{padding:5px 12px;font-size:12px;}
+
+  /* ── NAV ── */
+  .app-nav{padding:0;}
+  .nav-tab{padding:14px 10px;font-size:11px;}
+  .nav-right{padding:0 8px;}
+  .restaurant-badge{font-size:11px;padding:5px 10px;}
+
+  /* ── KITCHEN ── */
   .kitchen-cols{grid-template-columns:1fr;}
+  .kitchen-wrap{padding:14px 12px;}
+
+  /* ── TILL ── */
   .till-stats{grid-template-columns:1fr 1fr;}
+  .till-wrap{padding:14px 12px;}
+  .tables-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;}
+
+  /* ── ADMIN ── */
   .admin-grid{grid-template-columns:1fr;}
+  .admin-wrap{padding:14px 12px;}
+  .form-row{grid-template-columns:1fr;}
+
+  /* ── MODAL ── */
+  .modal{width:calc(100vw - 24px);padding:22px 18px;border-radius:16px;}
+}
+
+@media(max-width:480px){
+  /* Extra small phones */
+  .menu-grid{grid-template-columns:1fr 1fr;gap:8px;}
+  .menu-item-name{font-size:12.5px;}
+  .menu-item-price{font-size:13px;}
+  .nav-tab{padding:13px 8px;font-size:10.5px;}
+  .restaurant-badge{display:none;}
+  .till-stats{grid-template-columns:1fr 1fr;}
+  .stat-card{padding:12px 10px;}
+  .stat-value{font-size:22px;}
+  .tables-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));}
 }
 </style>
 </head>
@@ -329,6 +451,46 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
 </div>
 
 <!-- NAV -->
+<!-- PWA INSTALL BANNER -->
+<div class="pwa-install-banner hidden" id="pwa-install-banner">
+  <div class="pwa-install-icon">📱</div>
+  <div class="pwa-install-text">
+    <div class="pwa-install-title">Install TableFlow</div>
+    <div class="pwa-install-sub">Add to your home screen for faster access</div>
+  </div>
+  <button class="pwa-install-btn" id="pwa-install-btn">Install</button>
+  <button class="pwa-install-close" onclick="dismissInstallBanner()">×</button>
+</div>
+
+<!-- RATING MODAL -->
+<div class="rating-backdrop" id="rating-backdrop">
+  <div class="rating-sheet">
+    <div class="rating-handle"></div>
+    <div id="rating-content">
+      <div class="rating-title">How was your experience?</div>
+      <div class="rating-sub">Your feedback helps the restaurant improve</div>
+      <div class="rating-restaurant">
+        <span style="font-size:20px;">🏪</span>
+        <div>
+          <div class="rating-restaurant-name" id="rating-rest-name">—</div>
+          <div class="rating-restaurant-branch" id="rating-rest-branch">—</div>
+        </div>
+      </div>
+      <div class="stars-wrap" id="stars-wrap">
+        <button class="star-btn" onclick="setStar(1)" id="star-1">⭐</button>
+        <button class="star-btn" onclick="setStar(2)" id="star-2">⭐</button>
+        <button class="star-btn" onclick="setStar(3)" id="star-3">⭐</button>
+        <button class="star-btn" onclick="setStar(4)" id="star-4">⭐</button>
+        <button class="star-btn" onclick="setStar(5)" id="star-5">⭐</button>
+      </div>
+      <div class="rating-label" id="rating-label"></div>
+      <textarea class="rating-comment" id="rating-comment" rows="3" placeholder="Tell us more (optional) — what did you love? Anything we can improve?"></textarea>
+      <button class="rating-submit" id="rating-submit" onclick="submitRating()" disabled>Submit Rating</button>
+      <button class="rating-skip" onclick="closeRating()">Skip — no thanks</button>
+    </div>
+  </div>
+</div>
+
 <!-- ACCESS CONTROL ELEMENTS -->
 <div class="access-locked-screen hidden" id="access-locked-screen">
   <div class="locked-icon">🔒</div>
@@ -340,17 +502,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
     <div class="locked-detail-row"><span class="locked-detail-key">Restaurant</span><span class="locked-detail-val" id="locked-restaurant-name">—</span></div>
     <div class="locked-detail-row"><span class="locked-detail-key">Plan</span><span class="locked-detail-val" id="locked-plan">—</span></div>
     <div class="locked-detail-row"><span class="locked-detail-key">Amount due</span><span class="locked-detail-val red" id="locked-amount">—</span></div>
-    <div class="locked-detail-row"><span class="locked-detail-key">Support</span><span class="locked-detail-val">info@coetzeedataconsultants.co.za</span></div>
+    <div class="locked-detail-row"><span class="locked-detail-key">Support</span><span class="locked-detail-val">tableflowapp_info@tableflowapp.co.za</span></div>
   </div>
   <div class="locked-actions">
-    <a href="mailto:info@coetzeedataconsultants.co.za?subject=TableFlow Subscription Payment" class="locked-btn primary">📧 Contact Us to Pay</a>
+    <a href="mailto:tableflowapp_info@tableflowapp.co.za?subject=TableFlow Subscription Payment" class="locked-btn primary">📧 Contact Us to Pay</a>
     <a href="tel:0826462405" class="locked-btn ghost">📞 082 646 2405</a>
   </div>
 </div>
 <div class="grace-banner hidden" id="grace-banner">
   <div class="grace-banner-text">⚠️ Subscription payment overdue — <span class="grace-days-badge" id="grace-days-left">7 days left</span> before account locks.</div>
   <div class="grace-banner-actions">
-    <button class="grace-btn primary" onclick="window.location.href='mailto:info@coetzeedataconsultants.co.za?subject=TableFlow Payment'">Pay Now</button>
+    <button class="grace-btn primary" onclick="window.location.href='mailto:tableflowapp_info@tableflowapp.co.za?subject=TableFlow Payment'">Pay Now</button>
     <button class="grace-btn dismiss" onclick="dismissGraceBanner()">Dismiss</button>
   </div>
 </div>
@@ -419,6 +581,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
           <div class="total-row"><span>Subtotal</span><span id="tot-subtotal">R0.00</span></div>
           <div class="total-row"><span>Tip (<span id="tip-pct-label">15</span>%)</span><span id="tot-tip">R0.00</span></div>
           <div class="total-row grand"><span>Total</span><span id="tot-grand">R0.00</span></div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px;">
+          <span style="font-size:16px;flex-shrink:0;">👥</span>
+          <p style="font-size:12.5px;color:var(--text2);line-height:1.6;margin:0;">
+            <strong style="color:var(--text);">Dining with friends?</strong> One person can order and pay for the whole table. Simply add all items to this order and pay together.
+          </p>
         </div>
         <button class="pay-btn" id="pay-btn" onclick="openPayModal()" disabled>Pay Now</button>
         <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);">
@@ -555,7 +723,140 @@ body{font-family:'DM Sans',sans-serif;background:var(--surface2);color:var(--tex
 
 <script>
 // ══════════════════════════════════════════════════════════════
-//  SUPABASE INIT
+//  PWA — Service Worker & Install Prompt
+// ══════════════════════════════════════════════════════════════
+let deferredInstallPrompt = null;
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg=>{ console.log('[TableFlow PWA] SW registered'); setInterval(()=>reg.update(),3600000); })
+      .catch(err=>console.warn('[TableFlow PWA] SW failed:',err));
+  });
+}
+
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  if(!sessionStorage.getItem('pwa_dismissed')){
+    setTimeout(()=>{
+      const b=document.getElementById('pwa-install-banner');
+      if(b) b.classList.remove('hidden');
+    },30000);
+  }
+});
+
+function dismissInstallBanner(){
+  document.getElementById('pwa-install-banner')?.classList.add('hidden');
+  sessionStorage.setItem('pwa_dismissed','1');
+}
+
+window.addEventListener('load',()=>{
+  document.getElementById('pwa-install-btn')?.addEventListener('click',async()=>{
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const {outcome} = await deferredInstallPrompt.userChoice;
+    if(outcome==='accepted') dismissInstallBanner();
+    deferredInstallPrompt=null;
+  });
+});
+
+window.addEventListener('appinstalled',()=>{
+  dismissInstallBanner();
+  deferredInstallPrompt=null;
+});
+
+// ── HANDLE OZOW RETURN ───────────────────────────────────────────
+function handleOzowReturn(){
+  const params = new URLSearchParams(window.location.search);
+  const payment = params.get('payment');
+  const orderId = params.get('order');
+  if(!payment) return;
+
+  // Clean URL
+  window.history.replaceState({}, '', window.location.pathname);
+
+  if(payment === 'success' && orderId){
+    // Order already updated by webhook — just show success
+    setTimeout(()=>{
+      notify('🎉 Payment successful! Your order is in the kitchen.','success');
+      playPing();
+      vibe([100,50,200]);
+    }, 1000);
+  } else if(payment === 'cancelled'){
+    notify('Payment cancelled — your order has not been placed.','');
+  } else if(payment === 'error'){
+    notify('Payment error — please try again or speak to a staff member.','');
+  }
+}
+// ─────────────────────────────────────────────────────────────────
+let currentRating = 0;
+let ratingOrderId = null;
+const RATING_LABELS = {
+  1:'Poor — very disappointed',
+  2:'Below average',
+  3:'Good — met expectations',
+  4:'Great — really enjoyed it!',
+  5:'Excellent — absolutely loved it! 🎉',
+};
+
+function openRating(orderId){
+  ratingOrderId = orderId;
+  currentRating = 0;
+  for(let i=1;i<=5;i++) document.getElementById('star-'+i)?.classList.remove('active');
+  document.getElementById('rating-label').textContent='';
+  document.getElementById('rating-comment').value='';
+  document.getElementById('rating-submit').disabled=true;
+  document.getElementById('rating-rest-name').textContent=S.restaurant?.name||'Restaurant';
+  document.getElementById('rating-rest-branch').textContent=S.restaurant?.branch||'';
+  document.getElementById('rating-backdrop').classList.add('open');
+}
+
+function closeRating(){
+  document.getElementById('rating-backdrop').classList.remove('open');
+}
+
+function setStar(n){
+  currentRating=n;
+  for(let i=1;i<=5;i++){
+    const s=document.getElementById('star-'+i);
+    if(i<=n) s?.classList.add('active'); else s?.classList.remove('active');
+  }
+  document.getElementById('rating-label').textContent=RATING_LABELS[n]||'';
+  document.getElementById('rating-submit').disabled=false;
+}
+
+async function submitRating(){
+  if(!currentRating) return;
+  const comment=document.getElementById('rating-comment').value.trim();
+  const btn=document.getElementById('rating-submit');
+  btn.disabled=true; btn.textContent='Submitting…';
+  try {
+    await db.from('ratings').insert({
+      restaurant_id:S.restaurantId,
+      order_id:ratingOrderId,
+      table_number:S.tableNum,
+      rating:currentRating,
+      comment:comment||null,
+    });
+  } catch(e){ console.warn('Rating save failed:',e); }
+  document.getElementById('rating-content').innerHTML=`
+    <div class="rating-success">
+      <div class="rating-success-icon">${currentRating>=4?'🎉':'🙏'}</div>
+      <div class="rating-success-title">${currentRating>=4?'Thank you so much!':'Thank you for your feedback'}</div>
+      <div class="rating-success-sub">${currentRating>=4
+        ?'We\'re glad you had a great experience. See you again soon!'
+        :'Your feedback helps us improve. We appreciate your honesty.'}</div>
+    </div>`;
+  setTimeout(()=>closeRating(),2500);
+}
+
+window.addEventListener('load',()=>{
+  document.getElementById('rating-backdrop')?.addEventListener('click',function(e){
+    if(e.target===this) closeRating();
+  });
+});
+// ─────────────────────────────────────────────────────────────────
 // ══════════════════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://ujiezcaxgalbkrzdzrlo.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqaWV6Y2F4Z2FsYmtyemR6cmxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjgyNTQsImV4cCI6MjA5MDY0NDI1NH0.q6jBqd58vnl18KiMMazPhmd9A8OAN-FB8bUXsSiGxTI';
@@ -826,6 +1127,10 @@ function handleOrderChange(payload){
         vibe([200,100,200,100,400]);
         notify(`🛎️ Your food is ready! On its way to Table ${S.tableNum}.`,'alert');
       }
+      if(order.status==='served' && prev!=='served'){
+        // Show rating modal after 3 seconds
+        setTimeout(()=>openRating(order.id), 3000);
+      }
       renderCart();
     }
   }
@@ -864,7 +1169,7 @@ function showView(v, tab){
 // ══════════════════════════════════════════════════════════════
 //  MENU RENDER
 // ══════════════════════════════════════════════════════════════
-function cats(){ return ['All',...new Set(S.menuItems.filter(i=>i.active).map(i=>i.cat))]; }
+function cats(){ return ['All',...new Set(S.menuItems.filter(i=>i.active).map(i=>i.category))]; }
 
 function renderMenu(){
   const all = cats();
@@ -876,7 +1181,7 @@ function renderMenu(){
   const show = S.selectedCat==='All' ? all.filter(c=>c!=='All') : [S.selectedCat];
   let html='';
   show.forEach(cat=>{
-    const items = S.menuItems.filter(i=>i.active&&i.cat===cat&&(i.name.toLowerCase().includes(term)||i.description.toLowerCase().includes(term)));
+    const items = S.menuItems.filter(i=>i.active&&i.category===cat&&(i.name.toLowerCase().includes(term)||i.description.toLowerCase().includes(term)));
     if(!items.length) return;
     html+=`<div class="cat-section"><div class="cat-title">${cat}</div><div class="menu-grid">`;
     items.forEach(item=>{
@@ -1038,15 +1343,19 @@ function openPayModal(){
     <div class="modal-title">Confirm Payment</div>
     <div class="modal-sub">Table ${S.tableNum} · ${summary}</div>
     <div class="modal-amount">${S.currency}${grand.toFixed(2)}</div>
-    <div class="pay-methods">
-      <div class="pay-method active" onclick="selMethod(this)"><div class="pay-method-icon">💳</div><div class="pay-method-label">Card</div></div>
-      <div class="pay-method" onclick="selMethod(this)"><div class="pay-method-icon">📱</div><div class="pay-method-label">PayFast</div></div>
-      <div class="pay-method" onclick="selMethod(this)"><div class="pay-method-icon">🏦</div><div class="pay-method-label">Ozow EFT</div></div>
-      <div class="pay-method" onclick="selMethod(this)"><div class="pay-method-icon">📲</div><div class="pay-method-label">SnapScan</div></div>
+    <div style="background:#edf7f2;border:1px solid #2d9b5a;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;">
+      <span style="font-size:20px;flex-shrink:0;">🏦</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#2d9b5a;margin-bottom:2px;">Ozow Instant EFT</div>
+        <div style="font-size:12px;color:#6b6860;line-height:1.5;">Pay securely from your bank app. Supports all major SA banks — FNB, Nedbank, Absa, Standard Bank, Capitec and more.</div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#9e9b96;text-align:center;margin-bottom:16px;">
+      🔒 Secured by Ozow · SSL encrypted · PCI DSS compliant
     </div>
     <div class="modal-btns">
       <button class="btn-ghost" onclick="closeModal()">Cancel</button>
-      <button class="btn-primary" onclick="processPayment(${grand},${tip},${sub})">Pay ${S.currency}${grand.toFixed(2)}</button>
+      <button class="btn-primary" onclick="processPayment(${grand},${tip},${sub})">Pay with Ozow →</button>
     </div>`;
   document.getElementById('pay-modal').classList.add('open');
 }
@@ -1055,25 +1364,23 @@ function selMethod(el){ document.querySelectorAll('.pay-method').forEach(e=>e.cl
 function closeModal(){ document.getElementById('pay-modal').classList.remove('open'); }
 
 async function processPayment(grand, tip, sub){
-  // Disable button to prevent double-submit
-  document.querySelector('.btn-primary').disabled = true;
-  document.querySelector('.btn-primary').textContent = 'Processing…';
+  const btn = document.querySelector('#pay-modal-content .btn-primary');
+  if(btn){ btn.disabled=true; btn.textContent='Creating order…'; }
 
   try {
-    // 1. Insert order into Supabase
+    // 1. Insert order into Supabase (status: pending payment)
     const { data: order, error: orderErr } = await db
       .from('orders')
       .insert({
         restaurant_id: S.restaurantId,
         table_id: S.tableId,
         table_number: S.tableNum,
-        status: 'new',
+        status: 'pending_payment',
         subtotal: sub,
         tip_amount: tip,
         tip_pct: S.tipPct,
         total: grand,
-        payment_method: 'card',
-        paid_at: new Date().toISOString(),
+        payment_method: 'ozow',
         received_at: new Date().toISOString(),
       })
       .select()
@@ -1089,48 +1396,55 @@ async function processPayment(grand, tip, sub){
       price: c.price,
       quantity: c.qty,
     }));
-    const { error: itemsErr } = await db.from('order_items').insert(orderItems);
-    if(itemsErr) throw itemsErr;
+    await db.from('order_items').insert(orderItems);
 
-    // 3. Update table status to active
+    // 3. Update table status
     if(S.tableId){
       await db.from('restaurant_tables')
         .update({ status:'active', current_bill: grand })
         .eq('id', S.tableId);
     }
 
-    // 4. Track this order on the customer side
+    // 4. Track order on customer side
     const shortId = order.id.slice(-6).toUpperCase();
     S.tracked[order.id] = {
-      id: order.id,
-      shortId,
-      status: 'new',
+      id: order.id, shortId, status: 'pending_payment',
       placedAt: new Date().toISOString(),
       times: { received: fmtTime(new Date()) },
     };
 
-    // 5. Move cart to previous orders
+    if(btn) btn.textContent = 'Redirecting to Ozow…';
+
+    // 5. Generate Ozow payment URL via Edge Function
+    const response = await fetch(
+      'https://ujiezcaxgalbkrzdzrlo.supabase.co/functions/v1/ozow-payment',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqaWV6Y2F4Z2FsYmtyemR6cmxvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNjgyNTQsImV4cCI6MjA5MDY0NDI1NH0.q6jBqd58vnl18KiMMazPhmd9A8OAN-FB8bUXsSiGxTI`,
+        },
+        body: JSON.stringify({
+          orderId:        order.id,
+          amount:         grand,
+          restaurantId:   S.restaurantId,
+          restaurantName: S.restaurant?.name || 'Restaurant',
+          tableNum:       S.tableNum,
+          currency:       'ZAR',
+        }),
+      }
+    );
+
+    const result = await response.json();
+    if(!result.success) throw new Error(result.error || 'Payment generation failed');
+
+    // 6. Move cart to prev orders before redirect
     S.prevOrders.push({ label:`Order #${shortId}`, total:sub });
     S.cart = [];
-
-    playPing();
-    vibe([100,50,100]);
-
-    document.getElementById('pay-modal-content').innerHTML=`
-      <div class="success-card">
-        <div class="success-icon">✅</div>
-        <div class="success-title">Order Placed!</div>
-        <div class="success-msg">
-          Order <strong>#${shortId}</strong> is live in the kitchen.<br><br>
-          Watch the <strong>live tracker</strong> — every stage updates in real time. You'll hear a chime the moment your food is ready.<br><br>
-          Want to add more? Use the menu to add to your running tab.
-        </div>
-        <button class="btn-primary" style="width:100%;margin-top:20px;" onclick="closeModal()">Back to Menu</button>
-      </div>`;
-
     renderCart(); renderMenu();
-    notify(`Order #${shortId} sent to kitchen! 🍽️`, 'success');
-    setTimeout(()=>closeModal(), 3500);
+
+    // 7. Redirect to Ozow payment page
+    window.location.href = result.paymentUrl;
 
   } catch(e) {
     console.error('Payment error:', e);
@@ -1301,7 +1615,7 @@ function renderMenuManage(){
   document.getElementById('menu-manage-list').innerHTML = S.menuItems.map(item=>`
     <div class="menu-manage-item">
       <span style="font-size:20px;">${item.emoji}</span>
-      <div class="menu-item-info"><div class="name">${item.name}</div><div class="cat">${item.cat||item.category}</div></div>
+      <div class="menu-item-info"><div class="name">${item.name}</div><div class="cat">${item.category}</div></div>
       <span class="menu-item-price-tag">${S.currency}${Number(item.price).toFixed(2)}</span>
       <label class="toggle-switch">
         <input type="checkbox" ${item.active?'checked':''} onchange="toggleItem('${item.id}',this.checked)">
@@ -1450,6 +1764,7 @@ async function init(){
   subscribeRealtime();
 
   renderCart();
+  handleOzowReturn(); // Handle return from Ozow payment page
 
   document.getElementById('pay-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
